@@ -160,7 +160,7 @@ gameData.screenData.play.render = (main, display) => {
         screen.topLeftY, screen.stageHeight - screen.screenHeight);
     
     // render whole stage
-    // to-do: only render whole stage when topLeftX/Y changes
+    // to-do: center on cursor, not stage borders
     for (let x = screen.topLeftX; x < screen.topLeftX + screen.screenWidth; x++) {
         for (let y = screen.topLeftY; y < screen.topLeftY + screen.screenHeight; y++) {
             let glyph = screen.stage.getValue(x,y).getGlyph();
