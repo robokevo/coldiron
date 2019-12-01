@@ -10,6 +10,5 @@ window.addEventListener("load", function() {
         let gameDiv = document.getElementById("gameDiv");
         let game = new coldIron(gameData, silverKey);
         game.init(gameDiv, "start");
-        console.log(coldIron.Tile.nullTile);
     }
 });

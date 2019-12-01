@@ -4,6 +4,7 @@ let gameData = {
     name: "Moon Miners",
     version: "0.00",
     session:    null, // will eventually hold live game data
+    // keep widths and heights even! messes w/ display math otherwise
     displayWidth:   80,
     displayHeight:  40,
     stageWidth: 200,
@@ -109,10 +110,10 @@ gameData.screenData.play.commands = {
         y:  ()=>console.log('whyyyyyyyyy'),
         any: (main)=>console.log('any!'),
         esc: 'switch:menu',
-        up: (main) => main.getScreen().move(0,-1),
-        down: (main) => main.getScreen().move(0,1),
-        left: (main) => main.getScreen().move(-1,0),
-        right: (main) => main.getScreen().move(1,0),
+        up: (main) => main.screen.move(0,-1),
+        down: (main) => main.screen.move(0,1),
+        left: (main) => main.screen.move(-1,0),
+        right: (main) => main.screen.move(1,0),
     },
     shortcuts: {
         'ctrl,z':   ()=>console.log('undo!'),
@@ -137,18 +138,18 @@ gameData.screenData.play.enter = (main) => {
     }
 
     let stage = stages[main.session.currentLevel];
-    let screen = main.getScreen();
+    let screen = main.screen;
     screen.stage = stage;
-    screen.screenWidth = screen.displayWidth();
-    screen.screenHeight = screen.displayHeight();
-    screen.stageWidth = stage.getWidth();
-    screen.stageHeight = stage.getHeight();
+    screen.screenWidth = screen.displayWidth;
+    screen.screenHeight = screen.displayHeight;
+    screen.stageWidth = stage.width;
+    screen.stageHeight = stage.height;
 };
 
 // "Play" screen renderer
 gameData.screenData.play.render = (main, display) => {
     //let stage = main.session.stages[main.session.currentLevel];
-    let screen = main.getScreen();
+    let screen = main.screen;
     
     // keep cursor-x within left-bound
     screen.topLeftX = Math.max(0, screen._cursorX - (screen.screenWidth/2));
@@ -163,11 +164,11 @@ gameData.screenData.play.render = (main, display) => {
     // to-do: center on cursor, not stage borders
     for (let x = screen.topLeftX; x < screen.topLeftX + screen.screenWidth; x++) {
         for (let y = screen.topLeftY; y < screen.topLeftY + screen.screenHeight; y++) {
-            let glyph = screen.stage.getValue(x,y).getGlyph();
+            let glyph = screen.stage.getValue(x,y);
             display.draw(x - screen.topLeftX, y - screen.topLeftY,
-                glyph.getChar(),
-                glyph.getForeground(),
-                glyph.getBackground()
+                glyph.character,
+                glyph.fgColor,
+                glyph.bgColor
             );
         }
     }

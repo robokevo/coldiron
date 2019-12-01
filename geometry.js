@@ -2,23 +2,34 @@
 
 coldIron.Geometry = {};
 
-coldIron.Geometry.Grid = function(width, height, data) {
+coldIron.Geometry.Grid = class{
+    constructor(width, height, data) {
     this._width = width;
     this._height = height;
     this._data = data || [];
+    }
 
-    this.contains = (x, y) => 
-        x >= 0 && x < this._width && y >= 0 && y < this._height; 
+    // check if coordinates are found within
+    contains(x, y) { 
+        return (x >= 0 && x < this._width && y >= 0 && y < this._height); 
+    }
 
-    this.getWidth = () => this._width;
-
-    this.getHeight = () => this._height;
-
-    this.getValue = (x, y) =>
-        this._data[x + this._width * y];
-
-    this.setValue = (x, y, value) =>
+    getValue(x, y) {
+        return this._data[x + this._width * y];
+    }
+    
+    setValue(x, y, value) {
         this._data[x + this._width * y] = value;
+    }
+
+    get width() {
+        return this._width;
+    }
+
+    get height() {
+        return this._height;
+    }
+
 };
 
 coldIron.Geometry.getDistance = function(startX, startY, endX, endY) {
