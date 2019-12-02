@@ -10,6 +10,7 @@ let gameData = {
     stageWidth: 200,
     stageHeight: 120,
     stageDepth: 1,
+    stageOptions: {},
     screenData: {
         start:  {
             name:   'Start',
@@ -106,8 +107,15 @@ gameData.screenData.menu.render = (main, display) => {
 // "Play" command list
 gameData.screenData.play.commands = {
     keys:   {
-        x:  (main)=>console.log(main._currentScreen),
-        y:  ()=>console.log('whyyyyyyyyy'),
+        x:  (main)=>console.log(main.world.stages[main.world.level]),
+        y:  (main)=>
+            console.log(
+                main.screen._cursorX,
+                main.screen._cursorY
+            ),
+        z:  (main)=>
+            console.log(main.world.getRandomFloorTile()
+        ),
         any: (main)=>console.log('any!'),
         esc: 'switch:menu',
         up: (main) => main.screen.move(0,-1),
@@ -127,18 +135,17 @@ gameData.screenData.play.commands = {
 // "Play" enter screen
 gameData.screenData.play.enter = (main) => {
     // initialize stage data
-    let stages = main.session.stages;
-
-    if (stages === undefined) {
-        let width = gameData.stageWidth;
-        let height = gameData.stageHeight;
-        let depth = gameData.stageDepth;
-        main.session.stages = main.buildStages(width, height, depth);
-        stages = main.session.stages;
-    }
-
-    let stage = stages[main.session.currentLevel];
     let screen = main.screen;
+    let stages;
+    if (main._world === undefined) {
+        main.makeWorld(gameData);
+        stages = main.world.stages;
+    }
+    let stage = stages[main.world.level];
+    let startXY = main.world.getRandomFloorTile();
+    screen.player = new coldIron.Entity(gameData.entityData.player);
+    screen.player.x = startXY.x;
+    screen.player.y = startXY.y;
     screen.stage = stage;
     screen.screenWidth = screen.displayWidth;
     screen.screenHeight = screen.displayHeight;
@@ -148,7 +155,6 @@ gameData.screenData.play.enter = (main) => {
 
 // "Play" screen renderer
 gameData.screenData.play.render = (main, display) => {
-    //let stage = main.session.stages[main.session.currentLevel];
     let screen = main.screen;
     
     // keep cursor-x within left-bound
@@ -173,9 +179,45 @@ gameData.screenData.play.render = (main, display) => {
         }
     }
 
-    // render cursor
+    // render player
     display.draw(
         screen._cursorX - screen.topLeftX,
         screen._cursorY - screen.topLeftY,
         '@');
+};
+
+/////////////////////////////////////////////////////////////
+// Attribute mixin data
+gameData.attributeData = {};
+
+gameData.attributeData.mobile = {
+    // to-do: more interactions on bump
+    name:   'mobile',
+    tryMove: (x, y, stage) => {
+        let tile = stage.getValue(x, y);
+        // check if tile is traversable before walking
+        if (tile.traversable){
+            this._x = x;
+            this._y = y;
+            return true;
+        // or see if tile is destructible
+        // to-do: make incumbent on skill or tool
+        } else if (tile.destructible) {
+            this.world.destroy(x, y);
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+/////////////////////////////////////////////////////
+// Entity data
+gameData.entityData = {};
+
+gameData.entityData.player = {
+    character: '@',
+    fgColor: 'white',
+    bgColor: 'black',
+    attributes: [gameData.attributeData.mobile]
 };
