@@ -219,13 +219,22 @@ coldIron.Screen = class {
 
     // Screen-moving functions
     move(dX, dY) {
-        // postive dX moves right
-        this._cursorX = Math.max(0,
-            Math.min(this.stageWidth - 1, this._cursorX + dX));
-        // positive dY moves down
-        this._cursorY = Math.max(0,
-            Math.min(this.stageHeight - 1, this._cursorY + dY));
-        this._render(this.main.display);
+        // Positive dX moves right, negative dY moves down
+        let newX = this.player.x + dX;
+        let newY = this.player.y + dY;
+        // attempt move
+        let result = this.player.tryMove(newX, newY, this.stage);
+        if (result) {
+            this._render(this.main.display);
+        }
+        
+        //// postive dX moves right
+        //this._cursorX = Math.max(0,
+        //    Math.min(this.stageWidth - 1, this._cursorX + dX));
+        //// positive dY moves down
+        //this._cursorY = Math.max(0,
+        //    Math.min(this.stageHeight - 1, this._cursorY + dY));
+        //
     }
 };
 
@@ -331,8 +340,9 @@ coldIron.Entity = class extends coldIron.Glyph {
         this._x = properties.x || undefined;
         this._y = properties.y || undefined;
         this._z = properties.z || undefined;
+        this._world = properties.world || undefined;
         // entity's own record of attribute mixins
-        this._ownAttributes = {};
+        this._ownAttributes = properties.ownAttributes || {};
         let attributes = properties.attributes || [];
         for (let i = 0; i < attributes.length; i++) {
             for (let key in attributes[i]) {
@@ -376,11 +386,19 @@ coldIron.Entity = class extends coldIron.Glyph {
     }
 
     get y() {
-        return this._x;
+        return this._y;
     }
 
     set y(yPos) {
         this._y = yPos;
+    }
+
+    get world() {
+        return this._world;
+    }
+
+    set world(world) {
+        this._world = world;
     }
 
 };
@@ -391,9 +409,11 @@ coldIron.World = class  {
         this._width = gameData.stageWidth || this._displayWidth;
         this._height = gameData.stageHeight || this._displayHeight;
         this._depth = gameData.stageDepth || 0;
+        this._currentLevel = gameData.currentLevel || 0;
         this._stages = gameData.stages || undefined;
         this._player = gameData.player || undefined;
-        this._currentLevel = gameData.currentLevel || 0;
+        this._entities = gameData.entities || [];
+        // change the following to stage-specific settings;
         this._fgColor = gameData.fgColor || 'rgb(255, 255, 255)';
         this._bgColor = gameData.bgColor || 'rgb(0, 0, 0)';
     
@@ -405,6 +425,10 @@ coldIron.World = class  {
 
     get stages() {
         return this._stages;
+    }
+
+    get stage() {
+        return this._stages[this._currentLevel];
     }
 
     get level() {

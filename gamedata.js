@@ -107,6 +107,9 @@ gameData.screenData.menu.render = (main, display) => {
 // "Play" command list
 gameData.screenData.play.commands = {
     keys:   {
+        d:  (main)=>main.world.destroy(
+                main.screen._cursorX,
+                main.screen._cursorY),                    
         x:  (main)=>console.log(main.world.stages[main.world.level]),
         y:  (main)=>
             console.log(
@@ -140,12 +143,14 @@ gameData.screenData.play.enter = (main) => {
     if (main._world === undefined) {
         main.makeWorld(gameData);
         stages = main.world.stages;
+        let startXY = main.world.getRandomFloorTile();
+        let player = new coldIron.Entity(gameData.entityData.player);
+        player.x = startXY.x;
+        player.y = startXY.y;
+        player.world = main.world;
+        screen.player = player;
     }
-    let stage = stages[main.world.level];
-    let startXY = main.world.getRandomFloorTile();
-    screen.player = new coldIron.Entity(gameData.entityData.player);
-    screen.player.x = startXY.x;
-    screen.player.y = startXY.y;
+    let stage = main.world.stage;
     screen.stage = stage;
     screen.screenWidth = screen.displayWidth;
     screen.screenHeight = screen.displayHeight;
@@ -158,11 +163,11 @@ gameData.screenData.play.render = (main, display) => {
     let screen = main.screen;
     
     // keep cursor-x within left-bound
-    screen.topLeftX = Math.max(0, screen._cursorX - (screen.screenWidth/2));
+    screen.topLeftX = Math.max(0, screen.player.x - (screen.screenWidth/2));
     screen.topLeftX = Math.min(
         screen.topLeftX, screen.stageWidth - screen.screenWidth);
     // keep cursor-y within top-bound
-    screen.topLeftY = Math.max(0, screen._cursorY - (screen.screenHeight/2));
+    screen.topLeftY = Math.max(0, screen.player.y - (screen.screenHeight/2));
     screen.topLeftY = Math.min(
         screen.topLeftY, screen.stageHeight - screen.screenHeight);
     
@@ -181,9 +186,14 @@ gameData.screenData.play.render = (main, display) => {
 
     // render player
     display.draw(
-        screen._cursorX - screen.topLeftX,
-        screen._cursorY - screen.topLeftY,
-        '@');
+        screen.player.x - screen.topLeftX,
+        screen.player.y - screen.topLeftY,
+        screen.player.character,
+        screen.fgColor,
+        screen.bgColor
+    );
+
+
 };
 
 /////////////////////////////////////////////////////////////
@@ -193,21 +203,25 @@ gameData.attributeData = {};
 gameData.attributeData.mobile = {
     // to-do: more interactions on bump
     name:   'mobile',
-    tryMove: (x, y, stage) => {
-        let tile = stage.getValue(x, y);
-        // check if tile is traversable before walking
-        if (tile.traversable){
-            this._x = x;
-            this._y = y;
-            return true;
-        // or see if tile is destructible
-        // to-do: make incumbent on skill or tool
-        } else if (tile.destructible) {
-            this.world.destroy(x, y);
-            return true;
-        } else {
-            return false;
-        }
+    tryMove: function(x, y, stage) {
+        let tile;
+        if (stage.contains(x, y)) {
+            tile = stage.getValue(x, y);
+            // check if tile is traversable before walking
+            if (tile.traversable){
+                this._x = x;
+                this._y = y;
+                return true;
+            // or see if tile is destructible
+            // to-do: make incumbent on skill or tool
+            } else if (tile.destructible) {
+                this.world.destroy(x, y);
+                return true;
+            }
+        } 
+        
+        return false;
+        
     }
 };
 
