@@ -115,6 +115,11 @@ gameData.screenData.play.commands = {
                     main.screen.player.x,
                     main.screen.player.y)
                 ),
+        e:  (main)=> {
+            let entities = main.world.entities;
+            let result = entities.indexOf(main.screen.player);
+            console.log(result);
+        },
         x:  (main)=>console.log(main.world.stages[main.world.level]),
         y:  (main)=>
             console.log(
@@ -191,6 +196,7 @@ gameData.screenData.play.render = (main, display) => {
     }
 
     // render player
+    console.log(screen);
     display.draw(
         screen.player.x - screen.topLeftX,
         screen.player.y - screen.topLeftY,
