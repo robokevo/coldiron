@@ -343,8 +343,11 @@ coldIron.Entity = class extends coldIron.Glyph {
         this._world = properties.world || undefined;
         // entity's own record of attribute mixins
         this._ownAttributes = properties.ownAttributes || {};
+        this._ownAttributeGroups = properties.ownAttributeGroups || {};
         let attributes = properties.attributes || [];
         for (let i = 0; i < attributes.length; i++) {
+            // Copy over properties from each attribute mixin as long as it
+            // isn't called name or init, nor an already-taken property name
             for (let key in attributes[i]) {
                 if (key !== 'init' &&
                     key !== 'name' &&
@@ -354,6 +357,10 @@ coldIron.Entity = class extends coldIron.Glyph {
             }
             // Add this name to attached attribute mixins
             this._ownAttributes[attributes[i].name] = true;
+            // if a group name is present, add it
+            if (attributes[i].groupname) {
+                this._ownAttributeGroups[attributes[i].groupname] = true;
+            }
             // call its init function if there is one
             if (attributes[i].init) {
                 attributes[i].init.call(this, properties);
@@ -365,7 +372,7 @@ coldIron.Entity = class extends coldIron.Glyph {
         if (typeof attribute === 'object') {
             return this._ownAttributes[attribute.name];
         } else {
-            return this._attachedMixins[attribute];
+            return this._ownAttributes[attribute];
         }
     }
     
@@ -412,7 +419,12 @@ coldIron.World = class  {
         this._currentLevel = gameData.currentLevel || 0;
         this._stages = gameData.stages || undefined;
         this._player = gameData.player || undefined;
+        // list of all entities
         this._entities = gameData.entities || [];
+        // engine and scheduler objects
+        // to-do: allow for different scheduler types
+        this._scheduler = new ROT.Scheduler.Simple();
+        this._engine = new ROT.Engine(this._scheduler);
         // change the following to stage-specific settings;
         this._fgColor = gameData.fgColor || 'rgb(255, 255, 255)';
         this._bgColor = gameData.bgColor || 'rgb(0, 0, 0)';
@@ -433,6 +445,30 @@ coldIron.World = class  {
 
     get level() {
         return this._currentLevel;
+    }
+
+    set level(level) {
+        this._currentLevel = level;
+    }
+
+    get engine() {
+        return this._engine;
+    }
+
+    get entities() {
+        return this._entities;
+    }
+
+    getEntityAt(x, y) {
+        let entNo = this._entities.length;
+        let entity;
+        for (let i = 0; i < entNo; i++) {
+            entity = this._entities[i];
+            if (entity.x === x && entity.y === y) {
+                return entity;
+            }
+        }
+        return false;
     }
 
     destroy(x, y) {

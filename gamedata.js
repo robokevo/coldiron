@@ -109,7 +109,12 @@ gameData.screenData.play.commands = {
     keys:   {
         d:  (main)=>main.world.destroy(
                 main.screen._cursorX,
-                main.screen._cursorY),                    
+                main.screen._cursorY),
+        g:  (main)=>console.log(
+                main.screen.player.world.getEntityAt(
+                    main.screen.player.x,
+                    main.screen.player.y)
+                ),
         x:  (main)=>console.log(main.world.stages[main.world.level]),
         y:  (main)=>
             console.log(
@@ -148,6 +153,7 @@ gameData.screenData.play.enter = (main) => {
         player.x = startXY.x;
         player.y = startXY.y;
         player.world = main.world;
+        player.world._entities.push(player);
         screen.player = player;
     }
     let stage = main.world.stage;
