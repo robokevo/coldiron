@@ -5,10 +5,11 @@ let gameData = {
     version: "0.00",
     session:    null, // will eventually hold live game data
     // keep widths and heights even! messes w/ display math otherwise
+    // to-do: prevent errors if stage is smaller than display
     displayWidth:   80,
-    displayHeight:  40,
+    displayHeight: 40,
     stageWidth: 200,
-    stageHeight: 120,
+    stageHeight: 100,
     stageDepth: 1,
     stageOptions: {},
     screenData: {
@@ -127,7 +128,7 @@ gameData.screenData.play.commands = {
                 main.screen._cursorY
             ),
         z:  (main)=>
-            console.log(main.world.getRandomFloorTile()
+            console.log(main.world.getRandomFloorXY()
         ),
         any: (main)=>console.log('any!'),
         esc: 'switch:menu',
@@ -151,15 +152,10 @@ gameData.screenData.play.enter = (main) => {
     let screen = main.screen;
     let stages;
     if (main._world === undefined) {
-        main.makeWorld(gameData);
-        stages = main.world.stages;
-        let startXY = main.world.getRandomFloorTile();
         let player = new coldIron.Entity(gameData.entityData.player);
-        player.x = startXY.x;
-        player.y = startXY.y;
-        player.world = main.world;
-        player.world._entities.push(player);
         screen.player = player;
+        main.makeWorld(gameData, player);
+        stages = main.world.stages;
     }
     let stage = main.world.stage;
     screen.stage = stage;
@@ -195,15 +191,36 @@ gameData.screenData.play.render = (main, display) => {
         }
     }
 
-    // render player
-    console.log(screen);
-    display.draw(
-        screen.player.x - screen.topLeftX,
-        screen.player.y - screen.topLeftY,
-        screen.player.character,
-        screen.fgColor,
-        screen.bgColor
-    );
+    // render entities
+    let entities = main.world.entities;
+    let entity;
+    for (let i=0; i< entities.length; i++) {
+        entity = entities[i];
+        //only render if visible
+        if (entity.x >= screen.topLeftX && entity.y >= screen.topLeftY &&
+            entity.x < screen.topLeftX + screen.screenWidth &&
+            entity.y < screen.topLeftY + screen.screenHeight) {
+            
+            display.draw(
+                entity.x - screen.topLeftX,
+                entity.y - screen.topLeftY,
+                entity.character,
+                entity.fgColor,
+                entity.bgColor
+            );
+        
+        }
+    }
+
+    //// render player
+    //console.log(screen);
+    //display.draw(
+    //    screen.player.x - screen.topLeftX,
+    //    screen.player.y - screen.topLeftY,
+    //    screen.player.character,
+    //    screen.fgColor,
+    //    screen.bgColor
+    //);
 
 
 };
@@ -217,10 +234,14 @@ gameData.attributeData.mobile = {
     name:   'mobile',
     tryMove: function(x, y, stage) {
         let tile;
+        let target;
         if (stage.contains(x, y)) {
             tile = stage.getValue(x, y);
+            target = this.world.getEntityAt(x, y);
+            if (target) {
+                return false;
             // check if tile is traversable before walking
-            if (tile.traversable){
+            } else if (tile.traversable){
                 this._x = x;
                 this._y = y;
                 return true;
@@ -237,6 +258,27 @@ gameData.attributeData.mobile = {
     }
 };
 
+gameData.attributeData.playerActor = {
+    name: 'playerActor',
+    groupName: 'Actor',
+    act: function() {
+        // re-render screen
+        // to-do: only re-render scene window
+        this.world.main.refresh(this._world.main.display);
+        // Lock engine and wait asynchronously
+        // for player to press key
+        // to-do: replace w/ async/await function
+        // to-do: only trigger when on same floor
+        this.world.getEngine().lock();
+    }
+};
+
+gameData.attributeData.fungusActor = {
+    name: 'fungusActor',
+    groupName: 'Actor',
+    act: function() {}
+};
+
 /////////////////////////////////////////////////////
 // Entity data
 gameData.entityData = {};
@@ -245,5 +287,16 @@ gameData.entityData.player = {
     character: '@',
     fgColor: 'white',
     bgColor: 'black',
-    attributes: [gameData.attributeData.mobile]
+    attributes: [
+        gameData.attributeData.mobile,
+        gameData.attributeData.playerActor,
+    ]
+};
+
+gameData.entityData.fungus = {
+    character: 'F',
+    fgColor: 'green',
+    attributes: [
+        gameData.attributeData.fungusActor,
+    ]
 };

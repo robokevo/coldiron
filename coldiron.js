@@ -40,8 +40,16 @@ class coldIron {
         return this._currentScreen;
     }
 
+    set screen(screen) {
+        this._currentScreen = screen;
+    }
+
     get world() {
         return this._world;
+    }
+
+    refresh(display) {
+        this.screen._render(display);
     }
 
     //
@@ -50,23 +58,24 @@ class coldIron {
     switchScreen(screen) {
         //
         // if we had a screen, call its exit function
-        if (this._currentScreen !== undefined) {
-            this._currentScreen._handleInput('exit');
-            this._currentScreen._exit();
+        if (this.screen !== undefined) {
+            this.screen._handleInput('exit');
+            this.screen._exit();
         }
         // clear display
         this.display.clear();
         // update current screen, notify we entered and then render
-        this._currentScreen = this._screenList[screen];
-        if (this._currentScreen !== null) {
-            this._currentScreen._enter();
-            this._currentScreen._render(this.display);
-            this._currentScreen._handleInput('enter');
+        this.screen = this._screenList[screen];
+        if (this.screen !== null) {
+            this.screen._enter();
+            this.refresh(this.display);
+            this.screen._handleInput('enter');
         }
     }
 
-    makeWorld(gameData) {
-        this._world = new coldIron.World(gameData);
+    makeWorld(gameData, player) {
+        this._world = new coldIron.World(gameData, player);
+        this._world.main = this;
     }
 
     //
@@ -411,7 +420,7 @@ coldIron.Entity = class extends coldIron.Glyph {
 };
 
 coldIron.World = class  {
-        constructor(gameData) {
+        constructor(gameData, player) {
         this._title = gameData.title || undefined;
         this._width = gameData.stageWidth || this._displayWidth;
         this._height = gameData.stageHeight || this._displayHeight;
@@ -419,20 +428,32 @@ coldIron.World = class  {
         this._currentLevel = gameData.currentLevel || 0;
         this._stages = gameData.stages || undefined;
         this._player = gameData.player || undefined;
+        this._main = undefined;
         // list of all entities
         this._entities = gameData.entities || [];
         // engine and scheduler objects
         // to-do: allow for different scheduler types
         this._scheduler = new ROT.Scheduler.Simple();
+        // to-do: replace engine w/ async/await function:
+        // http://ondras.github.io/rot.js/manual/#timing/engine
         this._engine = new ROT.Engine(this._scheduler);
         // change the following to stage-specific settings;
         this._fgColor = gameData.fgColor || 'rgb(255, 255, 255)';
         this._bgColor = gameData.bgColor || 'rgb(0, 0, 0)';
     
         if (!this._stages) {
-            this._stages = this.buildStages(gameData);
+            this._stages = this.buildStages(gameData, player);
         }
     
+        this.addEntityAtRandom(player);
+
+        let newEnt;
+
+        for (let i = 0; i < 500; i++) {
+            newEnt = new coldIron.Entity(gameData.entityData.fungus);
+            this.addEntityAtRandom(newEnt);
+            console.log(newEnt);
+        }
     }
 
     get stages() {
@@ -455,8 +476,43 @@ coldIron.World = class  {
         return this._engine;
     }
 
+    get scheduler() {
+        return this._scheduler;
+    }
+
     get entities() {
         return this._entities;
+    }
+
+    get main() {
+        return this._main;
+    }
+
+    set main(main) {
+        this._main = main;
+    }
+
+    addEntity(entity) {
+        // check entity bounds
+        if (entity.x < 0 || entity.x >= this._width ||
+            entity.y < 0 || entity.y >= this._height) {
+            throw new Error('Adding entity out of bounds');
+        }
+        // Update entity's map
+        entity.world = this;
+        // update entity list
+        this._entities.push(entity);
+        // if entity is an actor, add to scheduler
+        if (entity.hasAttribute('Actor')) {
+            this.scheduler.add(entity, true);
+        }
+    }
+
+    addEntityAtRandom(entity) {
+        let position = this.getRandomFloorXY();
+        entity.x = position.x;
+        entity.y = position.y;
+        this.addEntity(entity);
     }
 
     getEntityAt(x, y) {
@@ -482,13 +538,20 @@ coldIron.World = class  {
         }
     }
 
-    getRandomFloorTile() {
+    getRandomFloorXY() {
         let tile = {x: undefined, y: undefined};
         let stage = this.stages[this.level];
-        do {
+        let valid = false;
+        while (!valid) {
             tile.x = Math.floor(Math.random() * this._width);
             tile.y = Math.floor(Math.random() * this._height);
-        } while (!(stage.getValue(tile.x, tile.y) instanceof coldIron.Tile.floorTile));
+            if (!(stage.getValue(tile.x, tile.y) instanceof coldIron.Tile.floorTile) ||
+            this.getEntityAt(tile.x, tile.y)) {
+                valid = false;
+            } else {
+                valid = true;
+            }
+        }
         return tile;
     }
 
@@ -546,6 +609,3 @@ coldIron.World = class  {
         return stages;
     }
 };
-
-
-
