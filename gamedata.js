@@ -6,10 +6,10 @@ let gameData = {
     session:    null, // will eventually hold live game data
     // keep widths and heights even! messes w/ display math otherwise
     // to-do: prevent errors if stage is smaller than display
-    displayWidth:   80,
-    displayHeight: 40,
-    stageWidth: 200,
-    stageHeight: 100,
+    displayWidth:   60,
+    displayHeight: 30,
+    stageWidth: 80,
+    stageHeight: 40,
     stageDepth: 1,
     stageOptions: {},
     screenData: {
@@ -48,8 +48,6 @@ gameData.tileData = {
 // "Start" screen command list
 gameData.screenData.start.commands = {
     keys:   {
-        a:  ()=>console.log('ayyyy'),
-        b:  ()=>console.log('beeee'),
         any: ()=>console.log('any?'),
         enter: 'switch:menu',
     },
@@ -108,20 +106,11 @@ gameData.screenData.menu.render = (main, display) => {
 // "Play" command list
 gameData.screenData.play.commands = {
     keys:   {
-        d:  (main)=>main.world.destroy(
-                main.screen._cursorX,
-                main.screen._cursorY),
         g:  (main)=>console.log(
                 main.screen.player.world.getEntityAt(
                     main.screen.player.x,
                     main.screen.player.y)
                 ),
-        e:  (main)=> {
-            let entities = main.world.entities;
-            let result = entities.indexOf(main.screen.player);
-            console.log(result);
-        },
-        x:  (main)=>console.log(main.world.stages[main.world.level]),
         y:  (main)=>
             console.log(
                 main.screen._cursorX,
@@ -208,55 +197,13 @@ gameData.screenData.play.render = (main, display) => {
                 entity.fgColor,
                 entity.bgColor
             );
-        
         }
     }
-
-    //// render player
-    //console.log(screen);
-    //display.draw(
-    //    screen.player.x - screen.topLeftX,
-    //    screen.player.y - screen.topLeftY,
-    //    screen.player.character,
-    //    screen.fgColor,
-    //    screen.bgColor
-    //);
-
-
 };
 
 /////////////////////////////////////////////////////////////
 // Attribute mixin data
 gameData.attributeData = {};
-
-gameData.attributeData.mobile = {
-    // to-do: more interactions on bump
-    name:   'mobile',
-    tryMove: function(x, y, stage) {
-        let tile;
-        let target;
-        if (stage.contains(x, y)) {
-            tile = stage.getValue(x, y);
-            target = this.world.getEntityAt(x, y);
-            if (target) {
-                return false;
-            // check if tile is traversable before walking
-            } else if (tile.traversable){
-                this._x = x;
-                this._y = y;
-                return true;
-            // or see if tile is destructible
-            // to-do: make incumbent on skill or tool
-            } else if (tile.destructible) {
-                this.world.destroy(x, y);
-                return true;
-            }
-        } 
-        
-        return false;
-        
-    }
-};
 
 gameData.attributeData.playerActor = {
     name: 'playerActor',
@@ -279,6 +226,64 @@ gameData.attributeData.fungusActor = {
     act: function() {}
 };
 
+gameData.attributeData.mobile = {
+    // to-do: more interactions on bump
+    name:   'mobile',
+    tryMove: function(x, y, stage) {
+        let tile;
+        let target;
+        if (stage.contains(x, y)) {
+            tile = stage.getValue(x, y);
+            target = this.world.getEntityAt(x, y);
+            if (target) {
+                if (this.hasAttribute('attacker')) {
+                    this.attack(target);
+                    return true;
+                }
+            // check if tile is traversable before walking
+            } else if (tile.traversable){
+                this._x = x;
+                this._y = y;
+                return true;
+            // or see if tile is destructible
+            // to-do: make incumbent on skill or tool
+            } else if (tile.destructible) {
+                this.world.destroy(x, y);
+                return true;
+            }
+        } 
+        
+        return false;
+        
+    }
+};
+
+gameData.attributeData.destructible = {
+    // to-do: more interactions on bump
+    name:   'destructible',
+    init: function() {
+        this._hp = 1;
+    },
+    takeDamage: function(attacker, damage) {
+        this._hp -= damage;
+        // If 0 or less HP, remove selves from map
+        if (this._hp <= 0) {
+            this.world.removeEntity(this);
+        }
+    }
+};
+
+gameData.attributeData.simpleAttacker = {
+    name: 'simpleAttacker',
+    groupName: 'attacker',
+    attack: function(target) {
+        // only attack if attackable
+        if (target.hasAttribute('destructible')) {
+           target.takeDamage(this, 1);
+        }
+    }
+};
+
 /////////////////////////////////////////////////////
 // Entity data
 gameData.entityData = {};
@@ -290,6 +295,7 @@ gameData.entityData.player = {
     attributes: [
         gameData.attributeData.mobile,
         gameData.attributeData.playerActor,
+        gameData.attributeData.simpleAttacker,
     ]
 };
 
@@ -298,5 +304,6 @@ gameData.entityData.fungus = {
     fgColor: 'green',
     attributes: [
         gameData.attributeData.fungusActor,
+        gameData.attributeData.destructible,
     ]
 };

@@ -367,8 +367,8 @@ coldIron.Entity = class extends coldIron.Glyph {
             // Add this name to attached attribute mixins
             this._ownAttributes[attributes[i].name] = true;
             // if a group name is present, add it
-            if (attributes[i].groupname) {
-                this._ownAttributeGroups[attributes[i].groupname] = true;
+            if (attributes[i].groupName) {
+                this._ownAttributeGroups[attributes[i].groupName] = true;
             }
             // call its init function if there is one
             if (attributes[i].init) {
@@ -381,7 +381,7 @@ coldIron.Entity = class extends coldIron.Glyph {
         if (typeof attribute === 'object') {
             return this._ownAttributes[attribute.name];
         } else {
-            return this._ownAttributes[attribute];
+            return this._ownAttributes[attribute] || this._ownAttributeGroups[attribute];
         }
     }
     
@@ -427,12 +427,13 @@ coldIron.World = class  {
         this._depth = gameData.stageDepth || 0;
         this._currentLevel = gameData.currentLevel || 0;
         this._stages = gameData.stages || undefined;
-        this._player = gameData.player || undefined;
+        this._player = gameData.player || player || undefined;
         this._main = undefined;
         // list of all entities
         this._entities = gameData.entities || [];
         // engine and scheduler objects
         // to-do: allow for different scheduler types
+        // to-do: if loading a save, enter saved entities into scheduler
         this._scheduler = new ROT.Scheduler.Simple();
         // to-do: replace engine w/ async/await function:
         // http://ondras.github.io/rot.js/manual/#timing/engine
@@ -442,22 +443,25 @@ coldIron.World = class  {
         this._bgColor = gameData.bgColor || 'rgb(0, 0, 0)';
     
         if (!this._stages) {
-            this._stages = this.buildStages(gameData, player);
+            this.stages = this.buildStages(gameData, player);
         }
-    
+        // to-do: tie spawn types/amounts to floors in gameData
         this.addEntityAtRandom(player);
 
         let newEnt;
 
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < 50; i++) {
             newEnt = new coldIron.Entity(gameData.entityData.fungus);
             this.addEntityAtRandom(newEnt);
-            console.log(newEnt);
         }
     }
 
     get stages() {
         return this._stages;
+    }
+
+    set stages(stages) {
+        this._stages = stages;
     }
 
     get stage() {
@@ -527,6 +531,20 @@ coldIron.World = class  {
         return false;
     }
 
+    removeEntity(entity) {
+        // find entity in list of present
+        for (let i = 0; i< this._entities.length; i++) {
+            if (this.entities[i] === entity) {
+                this._entities.splice(i, 1);
+                break;
+            }
+        }
+        // if entity is an actor, remove from scheduler
+        if (entity.hasAttribute('Actor')) {
+            this._scheduler.remove(entity);
+        }
+    }
+
     destroy(x, y) {
         // to-do; level-specific floor replacement
         // to-do; destroying other objects
@@ -538,19 +556,24 @@ coldIron.World = class  {
         }
     }
 
+    isFloorTile(x, y) {
+        let clear;
+        if (!(this.stage.getValue(x, y) instanceof coldIron.Tile.floorTile) ||
+        this.getEntityAt(x, y)) {
+            clear = false;
+        } else {
+            clear = true;
+        }
+        return clear;
+    }
+
     getRandomFloorXY() {
         let tile = {x: undefined, y: undefined};
         let stage = this.stages[this.level];
         let valid = false;
-        while (!valid) {
+        while (!this.isFloorTile(tile.x, tile.y)) {
             tile.x = Math.floor(Math.random() * this._width);
             tile.y = Math.floor(Math.random() * this._height);
-            if (!(stage.getValue(tile.x, tile.y) instanceof coldIron.Tile.floorTile) ||
-            this.getEntityAt(tile.x, tile.y)) {
-                valid = false;
-            } else {
-                valid = true;
-            }
         }
         return tile;
     }
