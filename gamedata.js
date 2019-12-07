@@ -105,7 +105,14 @@ gameData.screenData.menu.render = (main, display) => {
 
 // "Play" command list
 gameData.screenData.play.commands = {
+    //player: main.world.player,
     keys:   {
+        1:  (main)=>console.log(main.screen.player.findInRange('floor', 1)),
+        2:  (main)=>console.log(main.screen.player.findInRange('entity', 1)),
+        3:  (main)=>console.log(main.screen.player.findInRange('floor', 2)),
+        4:  (main)=>console.log(main.screen.player.findInRange('entity', 2)),
+        5:  (main)=>console.log(main.screen.player.findInRange('floor', 3)),
+        6:  (main)=>console.log(main.screen.player.findInRange('entity', 3)),
         g:  (main)=>console.log(
                 main.screen.player.world.getEntityAt(
                     main.screen.player.x,
@@ -145,6 +152,7 @@ gameData.screenData.play.enter = (main) => {
         screen.player = player;
         main.makeWorld(gameData, player);
         stages = main.world.stages;
+        main.world.engine.start();
     }
     let stage = main.world.stage;
     screen.stage = stage;
@@ -156,8 +164,18 @@ gameData.screenData.play.enter = (main) => {
 
 // "Play" screen renderer
 gameData.screenData.play.render = (main, display) => {
+
     let screen = main.screen;
-    
+    screen.resetFocus(screen.player);
+    let stage = screen.stage;
+    let cursorX = screen._cursorX; // will be used to center rendering  
+    let cursorY = screen._cursorY; // will be used to center rendering  
+    let startX = screen._startX;   // will be used to position windows
+    let startY = screen._startY;   // will be used to position windows
+    let width = screen.width;
+    let height = screen.height;
+    let character, bgColor, fgColor;
+   
     // keep cursor-x within left-bound
     screen.topLeftX = Math.max(0, screen.player.x - (screen.screenWidth/2));
     screen.topLeftX = Math.min(
@@ -207,23 +225,45 @@ gameData.attributeData = {};
 
 gameData.attributeData.playerActor = {
     name: 'playerActor',
-    groupName: 'Actor',
+    groupName: 'actor',
     act: function() {
         // re-render screen
         // to-do: only re-render scene window
-        this.world.main.refresh(this._world.main.display);
         // Lock engine and wait asynchronously
         // for player to press key
-        // to-do: replace w/ async/await function
+        // to-do: replace lock w/ async/await function
         // to-do: only trigger when on same floor
-        this.world.getEngine().lock();
+        // to-do: determine if more rendering needs to happen
+        this.world.main.refresh(this._world.main.display);
+        this.world.engine.lock();        
     }
 };
 
 gameData.attributeData.fungusActor = {
     name: 'fungusActor',
-    groupName: 'Actor',
-    act: function() {}
+    groupName: 'actor',
+    init: function() {
+        this._spawnRemaining = 3;
+    },
+    act: function() {
+        // check if growing this turn
+        // to-do: split into spawning function
+        if (this._spawnRemaining > 0) {
+            if (Math.random() <= 0.01) {
+                // Find coordinates of random neighbor square
+                let targets = this.findInRange('floor', 1);
+                if (targets.length > 0) {
+                    let index = Math.floor(Math.random()*targets.length);
+                    let target = targets[index];
+                    let entity = new coldIron.Entity(gameData.entityData.fungus);
+                    entity.x = target.x;
+                    entity.y = target.y;
+                    this.world.addEntity(entity);
+                    this._spawnRemaining--;
+                }
+            }
+        } 
+    }
 };
 
 gameData.attributeData.mobile = {
@@ -238,28 +278,28 @@ gameData.attributeData.mobile = {
             if (target) {
                 if (this.hasAttribute('attacker')) {
                     this.attack(target);
-                    return true;
+                //    return true;
                 }
             // check if tile is traversable before walking
             } else if (tile.traversable){
                 this._x = x;
                 this._y = y;
-                return true;
+            //    return true;
             // or see if tile is destructible
             // to-do: make incumbent on skill or tool
             } else if (tile.destructible) {
                 this.world.destroy(x, y);
-                return true;
+            //    return true;
             }
         } 
-        
-        return false;
-        
+        //return false;
+        this.continue();
     }
 };
 
 gameData.attributeData.destructible = {
-    // to-do: more interactions on bump
+    // to-do: wire walls and floors with this
+    // to-do: react() on takeDamage()
     name:   'destructible',
     init: function() {
         this._hp = 1;
@@ -281,6 +321,7 @@ gameData.attributeData.simpleAttacker = {
         if (target.hasAttribute('destructible')) {
            target.takeDamage(this, 1);
         }
+        this.continue();
     }
 };
 

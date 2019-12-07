@@ -113,6 +113,7 @@ class coldIron {
 
 coldIron.Screen = class {
     constructor(screenData, main) {
+    this.main = main;
     this.name = screenData.name || "New Screen";
     this.commands = screenData.commands || null;
     this.render = screenData.render || null;
@@ -121,7 +122,18 @@ coldIron.Screen = class {
     // center of screen focus, set programatically
     this._cursorX = 0;
     this._cursorY = 0;
-    this.main = main;
+    this._startX = screenData.startX || 0;
+    this._startY = screenData.startY || 0;
+    this._width = screenData.width || this.main._displayWidth;
+    this._height = screenData.height || this.main._displayHeight;
+    }
+
+    get width() {
+        return this._width;
+    }
+
+    get height() {
+        return this._height;
     }
 
     get displayWidth() {
@@ -138,6 +150,11 @@ coldIron.Screen = class {
 
     set displayHeight(height) {
         this.main._displayHeight = (height);
+    }
+
+    resetFocus(coordinate) {
+        this._cursorX = coordinate.x;
+        this._cursorY = coordinate.y;
     }
 
     //
@@ -233,9 +250,9 @@ coldIron.Screen = class {
         let newY = this.player.y + dY;
         // attempt move
         let result = this.player.tryMove(newX, newY, this.stage);
-        if (result) {
-            this._render(this.main.display);
-        }
+        //if (result) {
+        //    this._render(this.main.display);
+        //}
         
         //// postive dX moves right
         //this._cursorX = Math.max(0,
@@ -417,6 +434,46 @@ coldIron.Entity = class extends coldIron.Glyph {
         this._world = world;
     }
 
+    // unlocks game engine if entity locked it
+    continue() {
+        this.world.engine.unlock();
+    }
+
+    // returns list within specified range of coordinates of targets
+    // targets - type of target ('floor', 'entity')
+    // range - range around entity to explore from
+    findInRange(targets, range) {
+        let totalRange = [];
+        let validTargets = [];
+        for (let x = -range; x <= range; x++) {
+            for (let y = -range; y <= range; y++) {
+                if (!(x === 0 && y === 0)) {
+                    let point = {};
+                    point.x = x + this.x;
+                    point.y = y + this.y;
+                    if (this.world.stage.contains(point.x,point.y)) {
+                        totalRange.push(point);
+                    }
+                }
+            }
+        }
+        for (let i = 0; i < totalRange.length; i++) {
+            let point = totalRange[i];
+            if (targets === 'floor') {
+                if (this.world.isFloorTile(point.x, point.y) &&
+                    !this.world.getEntityAt(point.x, point.y)) {
+                    validTargets.push(point);
+                }
+            }
+            if (targets === 'entity') {
+                if (this.world.getEntityAt(point.x, point.y)) {
+                    validTargets.push(point);
+                }
+            }
+        }
+        return validTargets;
+    }
+
 };
 
 coldIron.World = class  {
@@ -443,14 +500,14 @@ coldIron.World = class  {
         this._bgColor = gameData.bgColor || 'rgb(0, 0, 0)';
     
         if (!this._stages) {
-            this.stages = this.buildStages(gameData, player);
+            this.stages = this.buildStages(gameData);
         }
         // to-do: tie spawn types/amounts to floors in gameData
         this.addEntityAtRandom(player);
 
         let newEnt;
 
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 25; i++) {
             newEnt = new coldIron.Entity(gameData.entityData.fungus);
             this.addEntityAtRandom(newEnt);
         }
@@ -507,8 +564,9 @@ coldIron.World = class  {
         // update entity list
         this._entities.push(entity);
         // if entity is an actor, add to scheduler
-        if (entity.hasAttribute('Actor')) {
-            this.scheduler.add(entity, true);
+        if (entity.hasAttribute('actor')) {
+            let scheduler = this.scheduler;
+            scheduler.add(entity, true);
         }
     }
 
