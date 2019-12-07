@@ -249,7 +249,7 @@ gameData.attributeData.fungusActor = {
         // check if growing this turn
         // to-do: split into spawning function
         if (this._spawnRemaining > 0) {
-            if (Math.random() <= 0.01) {
+            if (Math.random() <= 0.005) {
                 // Find coordinates of random neighbor square
                 let targets = this.findInRange('floor', 1);
                 if (targets.length > 0) {
@@ -301,25 +301,50 @@ gameData.attributeData.destructible = {
     // to-do: wire walls and floors with this
     // to-do: react() on takeDamage()
     name:   'destructible',
-    init: function() {
-        this._hp = 1;
+    init: function(template) {
+        this._maxHp = template.maxHp || 10;
+        this._hp = template.hp || this._maxHp;
+        this._defense = template.defense || 0;
+    },
+    // to-do: factor in temp hp from buffs
+    getHp:  function() {
+        return this._hp;
+    },
+    setHp: function(hp) {
+        this._hp += hp;
+    },
+    getMaxHp:   function() {
+        return this._maxHp;
+    },
+    // to-do: factor in buffs/armor
+    getDefense: function() {
+        return this._defense;
     },
     takeDamage: function(attacker, damage) {
-        this._hp -= damage;
+        this.setHp(-damage);
         // If 0 or less HP, remove selves from map
-        if (this._hp <= 0) {
+        if (this.getHp() <= 0) {
             this.world.removeEntity(this);
         }
     }
 };
 
-gameData.attributeData.simpleAttacker = {
-    name: 'simpleAttacker',
+gameData.attributeData.attacker = {
+    name: 'attacker',
     groupName: 'attacker',
+    init: function(template) {
+        this._strength = template.strength || 1;
+    },
+    getAtkPower: function() {
+        return this._strength;
+    },
     attack: function(target) {
         // only attack if attackable
         if (target.hasAttribute('destructible')) {
-           target.takeDamage(this, 1);
+            let attack = this.getAtkPower();
+            let defense = target.getDefense();
+            var maxDmg = Math.max(0, attack - defense);
+            target.takeDamage(this, 1 + Math.floor(Math.random() * maxDmg));
         }
         this.continue();
     }
@@ -333,16 +358,20 @@ gameData.entityData.player = {
     character: '@',
     fgColor: 'white',
     bgColor: 'black',
+    strength: 5,
     attributes: [
         gameData.attributeData.mobile,
         gameData.attributeData.playerActor,
-        gameData.attributeData.simpleAttacker,
+        gameData.attributeData.attacker,
+        gameData.attributeData.destructible,
     ]
 };
 
 gameData.entityData.fungus = {
     character: 'F',
     fgColor: 'green',
+    maxHp:  5,
+    defense: 0,
     attributes: [
         gameData.attributeData.fungusActor,
         gameData.attributeData.destructible,

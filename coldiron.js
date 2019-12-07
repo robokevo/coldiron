@@ -378,7 +378,11 @@ coldIron.Entity = class extends coldIron.Glyph {
                 if (key !== 'init' &&
                     key !== 'name' &&
                     !this.hasOwnProperty(key)) {
-                    this[key] = attributes[i][key];
+                    Object.defineProperty(this, key, {
+                        value: attributes[i][key],
+                        writable: false
+                    });
+                    //this[key] = attributes[i][key];
                 }
             }
             // Add this name to attached attribute mixins
