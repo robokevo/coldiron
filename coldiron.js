@@ -378,11 +378,7 @@ coldIron.Entity = class extends coldIron.Glyph {
                 if (key !== 'init' &&
                     key !== 'name' &&
                     !this.hasOwnProperty(key)) {
-                    Object.defineProperty(this, key, {
-                        value: attributes[i][key],
-                        writable: false
-                    });
-                    //this[key] = attributes[i][key];
+                    this[key] = attributes[i][key];
                 }
             }
             // Add this name to attached attribute mixins
@@ -442,42 +438,6 @@ coldIron.Entity = class extends coldIron.Glyph {
     continue() {
         this.world.engine.unlock();
     }
-
-    // returns list within specified range of coordinates of targets
-    // targets - type of target ('floor', 'entity')
-    // range - range around entity to explore from
-    findInRange(targets, range) {
-        let totalRange = [];
-        let validTargets = [];
-        for (let x = -range; x <= range; x++) {
-            for (let y = -range; y <= range; y++) {
-                if (!(x === 0 && y === 0)) {
-                    let point = {};
-                    point.x = x + this.x;
-                    point.y = y + this.y;
-                    if (this.world.stage.contains(point.x,point.y)) {
-                        totalRange.push(point);
-                    }
-                }
-            }
-        }
-        for (let i = 0; i < totalRange.length; i++) {
-            let point = totalRange[i];
-            if (targets === 'floor') {
-                if (this.world.isFloorTile(point.x, point.y) &&
-                    !this.world.getEntityAt(point.x, point.y)) {
-                    validTargets.push(point);
-                }
-            }
-            if (targets === 'entity') {
-                if (this.world.getEntityAt(point.x, point.y)) {
-                    validTargets.push(point);
-                }
-            }
-        }
-        return validTargets;
-    }
-
 };
 
 coldIron.World = class  {
@@ -515,6 +475,10 @@ coldIron.World = class  {
             newEnt = new coldIron.Entity(gameData.entityData.fungus);
             this.addEntityAtRandom(newEnt);
         }
+    }
+
+    get player() {
+        return this._player;
     }
 
     get stages() {
@@ -555,6 +519,65 @@ coldIron.World = class  {
 
     set main(main) {
         this._main = main;
+    }
+
+    // returns list within specified range of coordinates of targets
+    // targets - type of target ('floor', 'entity')
+    // range - range around entity to explore from
+    findInRange(center, range, targets) {
+        let totalRange = [];
+        let validTargets = [];
+        let entity;
+        for (let x = -range; x <= range; x++) {
+            for (let y = -range; y <= range; y++) {
+                if (!(x === 0 && y === 0)) {
+                    let point = {};
+                    point.x = x + center.x;
+                    point.y = y + center.y;
+                    if (this.stage.contains(point.x,point.y)) {
+                        totalRange.push(point);
+                    }
+                }
+            }
+        }
+        for (let i = 0; i < totalRange.length; i++) {
+            let point = totalRange[i];
+            entity = this.getEntityAt(point.x, point.y);
+            if (targets === 'floor') {
+                if (this.isFloorTile(point.x, point.y) &&
+                    !entity) {
+                    validTargets.push(point);
+                }
+            }
+            if (targets === 'entity') {
+                if (entity) {
+                    validTargets.push(entity);
+                }
+            }
+        }
+        return validTargets;
+    }
+
+    sendMessage(target, message, args) {
+        // Make sure recipient can recieve message
+        if (target.hasAttribute('messageRecipient')) {
+            // if args passed, format msg
+            if (args) {
+                // formatting function
+            }
+            target.receiveMessage(message);
+        }
+    }
+
+    sendMessageInRange(center, range, message, args) {
+        let targets = this.findInRange(center, range, 'entity');
+        let entity;
+        for (let t = 0; t < targets.length; t++) {
+            entity = targets[t];
+            if (entity.hasAttribute('messageRecipient')) {
+                this.sendMessage(entity, message, args);
+            }
+        }
     }
 
     addEntity(entity) {
@@ -602,7 +625,7 @@ coldIron.World = class  {
             }
         }
         // if entity is an actor, remove from scheduler
-        if (entity.hasAttribute('Actor')) {
+        if (entity.hasAttribute('actor')) {
             this._scheduler.remove(entity);
         }
     }

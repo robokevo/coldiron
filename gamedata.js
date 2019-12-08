@@ -107,14 +107,14 @@ gameData.screenData.menu.render = (main, display) => {
 gameData.screenData.play.commands = {
     //player: main.world.player,
     keys:   {
-        1:  (main)=>console.log(main.screen.player.findInRange('floor', 1)),
-        2:  (main)=>console.log(main.screen.player.findInRange('entity', 1)),
-        3:  (main)=>console.log(main.screen.player.findInRange('floor', 2)),
-        4:  (main)=>console.log(main.screen.player.findInRange('entity', 2)),
-        5:  (main)=>console.log(main.screen.player.findInRange('floor', 3)),
-        6:  (main)=>console.log(main.screen.player.findInRange('entity', 3)),
+        1:  (main)=>console.log(main.world.findInRange(main.world.player, 1, 'floor')),
+        2:  (main)=>console.log(main.world.findInRange(main.world.player, 1, 'entity')),
+        3:  (main)=>console.log(main.world.findInRange(main.world.player, 2, 'floor')),
+        4:  (main)=>console.log(main.world.findInRange(main.world.player, 2, 'entity')),
+        5:  (main)=>console.log(main.world.findInRange(main.world.player, 3, 'floor')),
+        6:  (main)=>console.log(main.world.findInRange(main.world.player, 3, 'entity')),
         g:  (main)=>console.log(
-                main.screen.player.world.getEntityAt(
+                main.world.getEntityAt(
                     main.screen.player.x,
                     main.screen.player.y)
                 ),
@@ -251,13 +251,14 @@ gameData.attributeData.fungusActor = {
         if (this._spawnRemaining > 0) {
             if (Math.random() <= 0.005) {
                 // Find coordinates of random neighbor square
-                let targets = this.findInRange('floor', 1);
+                let targets = this.world.findInRange(this, 1, 'floor');
                 if (targets.length > 0) {
                     let index = Math.floor(Math.random()*targets.length);
                     let target = targets[index];
                     let entity = new coldIron.Entity(gameData.entityData.fungus);
                     entity.x = target.x;
                     entity.y = target.y;
+                    this.world.sendMessageInRange(this, 5, 'it spreadin!');
                     this.world.addEntity(entity);
                     this._spawnRemaining--;
                 }
@@ -324,6 +325,8 @@ gameData.attributeData.destructible = {
         this.setHp(-damage);
         // If 0 or less HP, remove selves from map
         if (this.getHp() <= 0) {
+            this.world.sendMessage(attacker, 'You kill the [monster]');
+            this.world.sendMessage(this, 'You were killed by [killer]');
             this.world.removeEntity(this);
         }
     }
@@ -344,10 +347,30 @@ gameData.attributeData.attacker = {
             let attack = this.getAtkPower();
             let defense = target.getDefense();
             var maxDmg = Math.max(0, attack - defense);
+
+            this.world.sendMessage(this, 'You strike the [monster] for [damage]');
+            this.world.sendMessage(target, 'The [attacker] strikes you for [damage]');
+
             target.takeDamage(this, 1 + Math.floor(Math.random() * maxDmg));
         }
         this.continue();
     }
+};
+
+gameData.attributeData.messageRecipient = {
+    name: 'messageRecipient',
+    init:   function(template) {
+        this._messages = [];
+    },
+    receiveMessage: function(message) {
+        this._messages.push(message);
+    },
+    getMessages:    function(message) {
+        return this._messages;
+    },
+    clearMessages:  function() {
+        this._messages = [];
+    },
 };
 
 /////////////////////////////////////////////////////
@@ -358,16 +381,18 @@ gameData.entityData.player = {
     character: '@',
     fgColor: 'white',
     bgColor: 'black',
-    strength: 5,
+    strength: 6,
     attributes: [
         gameData.attributeData.mobile,
         gameData.attributeData.playerActor,
         gameData.attributeData.attacker,
         gameData.attributeData.destructible,
+        gameData.attributeData.messageRecipient,
     ]
 };
 
 gameData.entityData.fungus = {
+    name: 'fungus',
     character: 'F',
     fgColor: 'green',
     maxHp:  5,
