@@ -117,10 +117,10 @@ coldIron.Screen = class {
     constructor(screenData, main) {
     this.main = main;
     this.name = screenData.name || "New Screen";
-    this.commands = screenData.commands || null;
-    this.render = screenData.render || null;
-    this.enter = screenData.enter || null;
-    this.exit = screenData.exit || null;
+    this.commands = screenData.commands || undefined;
+    this.render = screenData.render || undefined;
+    this.enter = screenData.enter || undefined;
+    this.exit = screenData.exit || undefined;
     this._origin = screenData.origin || {x: 0, y: 0};
     this._width = screenData.width || this.main._displayWidth;
     this._height = screenData.height || this.main._displayHeight;
@@ -130,11 +130,13 @@ coldIron.Screen = class {
     this._font = screenData.font || this.main._font;
     this._fontSize = screenData.fontSize || this.main._fontSize;
     this._spacing = screenData.spacing || this.main._spacing;
-    this._title = screenData.title || null;
-    this._windows = screenData.windows || null;
+    this._title = screenData.title || undefined;
+    this._panelData = screenData.panelData || undefined;
+    this._panels = screenData.panels || undefined;
+    this._panelNames = screenData.panelNames || undefined;
     // re-render if dirty = true
     this._dirty = false;
-    this._cursor = null;
+    this._cursor = undefined;
     }
 
     get display() {
@@ -165,6 +167,14 @@ coldIron.Screen = class {
     set displayHeight(height) {
         this.main._displayHeight = (height);
         this.display.setOptions({height: height});
+    }
+
+    get panels() {
+        return this._panels;
+    }
+
+    get panelNames() {
+        return this._panelNames;
     }
 
     get origin() {
@@ -235,6 +245,27 @@ coldIron.Screen = class {
         console.log("entered " + this.name + "screen");
         if (this.enter) {
             this.enter(this.main);
+            if (this._panels === undefined &&
+                this._panelData) {
+                this._panels = {};
+                let pData = this._panelData;
+                let pNames = Object.keys(pData);
+                this._panelNames = pNames;
+                let pName;
+                for (let n = 0; n < pNames.length; n++) {
+                    pName = pNames[n];
+                    this._panels[pName] = new coldIron.Panel(pData[pName], this.main, this);
+                }
+            }
+            if (this._panelNames) {
+                let pName;
+                for (let n = 0; n < this._panelNames.length; n++) {
+                    pName = this._panelNames[n];
+                    if (this._panels[pName].enter){
+                        this._panels[pName].enter(this.main);
+                    }
+                }
+            }
         }
     }
 
@@ -252,8 +283,14 @@ coldIron.Screen = class {
     _render(display) {
         if (this.render) {
             this.render(this.main, display);
-            if (typeof this._windows === "object") {
-
+            if (this.panelNames) {
+                let name;
+                for (let i = 0; i < this.panelNames.length; i++) {
+                    name = this.panelNames[i];
+                    if (this.panels[name].render) {
+                        this.panels[name].render(this.main, display);
+                    }
+                }    
             }
         }
     }
@@ -339,9 +376,9 @@ coldIron.Screen = class {
     }
 };
 
-coldIron.Screen.Window = class extends coldIron.Screen {
-    constructor(windowData, main, parent) {
-        super(windowData, main);
+coldIron.Panel = class extends coldIron.Screen {
+    constructor(panelData, main, parent) {
+        super(panelData, main);
         this._parent = parent;
         this._active = false;
     }
@@ -720,7 +757,7 @@ coldIron.World = class  {
         let target = stage.getValue(x,y);
         if (target.destructible) {
             stage.setValue(x, y,
-                new coldIron.Tile.floorTile(appData.stageOptions));
+                new coldIron.Tile.floorTile(this.main.appData.stageOptions));
         }
     }
 

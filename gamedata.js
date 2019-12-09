@@ -179,8 +179,8 @@ gameData.screenData.play.render = (main, display) => {
     //let stage = screen.stage;
     //let cursorX = screen._cursorX; // will be used to center rendering  
     //let cursorY = screen._cursorY; // will be used to center rendering  
-    //let startX = screen._startX;   // will be used to position windows
-    //let startY = screen._startY;   // will be used to position windows
+    //let startX = screen._startX;   // will be used to position panels
+    //let startY = screen._startY;   // will be used to position panels
     //let width = screen.width;
     //let height = screen.height;
     //let character, bgColor, fgColor;
@@ -228,6 +228,32 @@ gameData.screenData.play.render = (main, display) => {
     //}
 };
 
+gameData.screenData.play.panelData = {
+    stage: {
+        name: 'Stage',
+        origin: {x:undefined,y:undefined},
+        width: 40,
+        height: 20,
+
+        enter: function(main) {
+            this.origin.x = Math.round((this.displayWidth-this.width)/2);
+            this.origin.y = 1;
+        },
+
+        render: function(main, display) {
+            let testChar = 'c'.repeat(this.width);
+            testChar += '\n'; 
+            for (let i = 0; i < this.height; i++) {
+                display.drawText(this.origin.x, this.origin.y+i, testChar);
+            }
+        },
+    },
+    info: {
+        name: 'Info',
+        origin: {x:0,y:0}
+    }
+};
+
 /////////////////////////////////////////////////////////////
 // Attribute mixin data
 gameData.attributeData = {};
@@ -237,7 +263,7 @@ gameData.attributeData.playerActor = {
     groupName: 'actor',
     act: function() {
         // re-render screen
-        // to-do: only re-render scene window
+        // to-do: only re-render scene panel
         // Lock engine and wait asynchronously
         // for player to press key
         // to-do: replace lock w/ async/await function
