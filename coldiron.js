@@ -1,22 +1,29 @@
 'use strict';
 
 class coldIron {
-    constructor(data, inputHandler, handlerTarget) {
-        this._name = data.name;
-        this._version = data.version;
+    constructor(appData, inputHandler, handlerTarget) {
+        this._appData = appData;
+        this._name = appData.name;
+        this._version = appData.version;
         // will eventually hold live game data
         this._display = undefined; // the ROT canvas object
+        // defaults to get passed to screens
         // !to-do: determine minimum screen size
-        this._displayWidth = data.displayWidth || 80;
-        this._displayHeight = data.displayHeight || 42;
-        //this._screenData = data.screenData || null;
-        this._world = data.world || undefined;
+        this._displayWidth = appData.maxDisplayWidth || 80;
+        this._displayHeight = appData.maxDisplayHeight || 42;
+        this._colors = appData.colors || ['rgb(0, 0, 0)', 'rgb(255, 255, 255)'];
+        this._bgColor = appData.bgColor || this._colors[0];
+        this._fgColor = appData.fgColor || this._colors[1];
+        this._font = appData.font || 'monospace';
+        this._fontSize = appData.fontSize || 14;
+        this._spacing = appData.spacing || 1;
+        this._world = appData.world || undefined;
         this._screenList = {};
         this._currentScreen = undefined;
         this._lastScreen = [];
         this._gameOver = false;
         this.session =
-        data.session || {
+        appData.session || {
             stages: undefined,
             currentLevel: 0,
             };
@@ -73,8 +80,8 @@ class coldIron {
         }
     }
 
-    makeWorld(gameData, player) {
-        this._world = new coldIron.World(gameData, player);
+    makeWorld(appData, player) {
+        this._world = new coldIron.World(appData, player);
         this._world.main = this;
     }
 
@@ -83,17 +90,12 @@ class coldIron {
     init(gameDiv, launchScreen) {
         //
         // Initialize display and append to game area
-        this._display = new ROT.Display({
-                                        width: this._displayWidth,
-                                        height: this._displayHeight,
-                                        fontFamily: "monospace",
-                                        fontSize: 12,
-                                    });
+        this._display = new ROT.Display();
         gameDiv.appendChild(this._display.getContainer());
                                 
         //
         // Initialize screens
-        let screenData = gameData.screenData;
+        let screenData = this._appData.screenData;
         let screens = Object.keys(screenData);
         screens.forEach((screen) => {
             this._screenList[screen] = new coldIron.Screen(screenData[screen], this);
@@ -119,13 +121,24 @@ coldIron.Screen = class {
     this.render = screenData.render || null;
     this.enter = screenData.enter || null;
     this.exit = screenData.exit || null;
-    // center of screen focus, set programatically
-    this._cursorX = 0;
-    this._cursorY = 0;
-    this._startX = screenData.startX || 0;
-    this._startY = screenData.startY || 0;
+    this._origin = screenData.origin || {x: 0, y: 0};
     this._width = screenData.width || this.main._displayWidth;
     this._height = screenData.height || this.main._displayHeight;
+    this._colors = screenData.colors || this.main._colors;
+    this._bgColor = screenData.bgColor || this._colors[0];
+    this._fgColor = screenData.fgColor || this._colors[1];
+    this._font = screenData.font || this.main._font;
+    this._fontSize = screenData.fontSize || this.main._fontSize;
+    this._spacing = screenData.spacing || this.main._spacing;
+    this._title = screenData.title || null;
+    this._windows = screenData.windows || null;
+    // re-render if dirty = true
+    this._dirty = false;
+    this._cursor = null;
+    }
+
+    get display() {
+        return this.main._display;
     }
 
     get width() {
@@ -142,6 +155,7 @@ coldIron.Screen = class {
 
     set displayWidth(width) {
         this.main._displayWidth = (width);
+        this.display.setOptions({width: width});
     }
 
     get displayHeight() {
@@ -150,16 +164,74 @@ coldIron.Screen = class {
 
     set displayHeight(height) {
         this.main._displayHeight = (height);
+        this.display.setOptions({height: height});
+    }
+
+    get origin() {
+        return this._origin;
+    }
+
+    set origin(newOrigin) {
+        this._origin.x = newOrigin.x;
+        this._origin.y = newOrigin.y;
+    }
+
+    get bgColor() {
+        return this._bgColor;
+    }
+
+    set bgColor(color) {
+        this._bgColor = color;
+    }
+
+    get fgColor() {
+        return this._fgColor;
+    }
+
+    set fgColor(color) {
+        this._fgColor = color;
+    }
+
+    get font() {
+        return this._font;
+    }
+
+    set font(fontFam) {
+        this._font = fontFam;
+    }
+
+    get fontSize() {
+        return this._fontSize;
+    }
+
+    set fontSize(size) {
+        this._fontSize = size;
+    }
+
+    get spacing() {
+        return this._spacing;
+    }
+
+    set spacing(spacing) {
+        this._spacing = spacing;
     }
 
     resetFocus(coordinate) {
-        this._cursorX = coordinate.x;
-        this._cursorY = coordinate.y;
+        this._cursor = {x: coordinate.x, y: coordinate.y};
     }
 
     //
     // initialize values upon entering screen
     _enter() {
+        this.main.display.setOptions({
+            fg: this.fgColor,
+            bg: this.bgColor,
+            width: this.displayWidth,
+            height: this.displayHeight,
+            fontFamily: this.font,
+            fontSize: this.fontSize,
+            spacing: this.spacing,            
+        });
         console.log("entered " + this.name + "screen");
         if (this.enter) {
             this.enter(this.main);
@@ -180,6 +252,9 @@ coldIron.Screen = class {
     _render(display) {
         if (this.render) {
             this.render(this.main, display);
+            if (typeof this._windows === "object") {
+
+            }
         }
     }
 
@@ -261,6 +336,14 @@ coldIron.Screen = class {
         //this._cursorY = Math.max(0,
         //    Math.min(this.stageHeight - 1, this._cursorY + dY));
         //
+    }
+};
+
+coldIron.Screen.Window = class extends coldIron.Screen {
+    constructor(windowData, main, parent) {
+        super(windowData, main);
+        this._parent = parent;
+        this._active = false;
     }
 };
 
@@ -441,17 +524,17 @@ coldIron.Entity = class extends coldIron.Glyph {
 };
 
 coldIron.World = class  {
-        constructor(gameData, player) {
-        this._title = gameData.title || undefined;
-        this._width = gameData.stageWidth || this._displayWidth;
-        this._height = gameData.stageHeight || this._displayHeight;
-        this._depth = gameData.stageDepth || 0;
-        this._currentLevel = gameData.currentLevel || 0;
-        this._stages = gameData.stages || undefined;
-        this._player = gameData.player || player || undefined;
+        constructor(appData, player) {
+        // this._title = gameData.title || undefined;
+        this._width = appData.stageWidth || this._displayWidth;
+        this._height = appData.stageHeight || this._displayHeight;
+        this._depth = appData.stageDepth || 0;
+        this._currentLevel = appData.currentLevel || 0;
+        this._stages = appData.stages || undefined;
+        this._player = appData.player || player || undefined;
         this._main = undefined;
         // list of all entities
-        this._entities = gameData.entities || [];
+        this._entities = appData.entities || [];
         // engine and scheduler objects
         // to-do: allow for different scheduler types
         // to-do: if loading a save, enter saved entities into scheduler
@@ -460,11 +543,11 @@ coldIron.World = class  {
         // http://ondras.github.io/rot.js/manual/#timing/engine
         this._engine = new ROT.Engine(this._scheduler);
         // change the following to stage-specific settings;
-        this._fgColor = gameData.fgColor || 'rgb(255, 255, 255)';
-        this._bgColor = gameData.bgColor || 'rgb(0, 0, 0)';
+        this._fgColor = appData.fgColor || 'rgb(255, 255, 255)';
+        this._bgColor = appData.bgColor || 'rgb(0, 0, 0)';
     
         if (!this._stages) {
-            this.stages = this.buildStages(gameData);
+            this.stages = this.buildStages(appData);
         }
         // to-do: tie spawn types/amounts to floors in gameData
         this.addEntityAtRandom(player);
@@ -472,7 +555,7 @@ coldIron.World = class  {
         let newEnt;
 
         for (let i = 0; i < 25; i++) {
-            newEnt = new coldIron.Entity(gameData.entityData.fungus);
+            newEnt = new coldIron.Entity(appData.entityData.fungus);
             this.addEntityAtRandom(newEnt);
         }
     }
@@ -637,7 +720,7 @@ coldIron.World = class  {
         let target = stage.getValue(x,y);
         if (target.destructible) {
             stage.setValue(x, y,
-                new coldIron.Tile.floorTile(gameData.stageOptions));
+                new coldIron.Tile.floorTile(appData.stageOptions));
         }
     }
 
@@ -666,12 +749,12 @@ coldIron.World = class  {
     //
     // Constructor for stages
     // Instance method on coldIron object
-    buildStages(gameData) {
+    buildStages(appData) {
 
         let width = this._width;
         let height = this._height;
         let depth = this._depth;
-        let options = gameData.stageOptions || {};
+        let options = appData.stageOptions || {};
         let stages = [];
         let regions = [];
         let stage;

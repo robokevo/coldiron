@@ -6,10 +6,11 @@ let gameData = {
     session:    null, // will eventually hold live game data
     // keep widths and heights even! messes w/ display math otherwise
     // to-do: prevent errors if stage is smaller than display
-    displayWidth:   60,
-    displayHeight: 30,
+    maxDisplayWidth:  60,
+    maxDisplayHeight: 30,
     stageWidth: 80,
     stageHeight: 40,
+    colors: ['rgb(50, 0, 50)', 'rgb(0, 255, 0)'],
     stageDepth: 1,
     stageOptions: {},
     screenData: {
@@ -21,7 +22,11 @@ let gameData = {
         },
         play:   {
             name:   'Play',
-            _stage:   null,
+            origin: {
+                x: 1,
+                y: 1
+            },
+            colors: ['rgb(0, 0, 50)', 'rgb(255, 0, 255)'],
         },
     }
 };
@@ -166,57 +171,61 @@ gameData.screenData.play.enter = (main) => {
 gameData.screenData.play.render = (main, display) => {
 
     let screen = main.screen;
-    screen.resetFocus(screen.player);
     let stage = screen.stage;
-    let cursorX = screen._cursorX; // will be used to center rendering  
-    let cursorY = screen._cursorY; // will be used to center rendering  
-    let startX = screen._startX;   // will be used to position windows
-    let startY = screen._startY;   // will be used to position windows
-    let width = screen.width;
-    let height = screen.height;
-    let character, bgColor, fgColor;
-   
-    // keep cursor-x within left-bound
-    screen.topLeftX = Math.max(0, screen.player.x - (screen.screenWidth/2));
-    screen.topLeftX = Math.min(
-        screen.topLeftX, screen.stageWidth - screen.screenWidth);
-    // keep cursor-y within top-bound
-    screen.topLeftY = Math.max(0, screen.player.y - (screen.screenHeight/2));
-    screen.topLeftY = Math.min(
-        screen.topLeftY, screen.stageHeight - screen.screenHeight);
-    
-    // render whole stage
-    // to-do: center on cursor, not stage borders
-    for (let x = screen.topLeftX; x < screen.topLeftX + screen.screenWidth; x++) {
-        for (let y = screen.topLeftY; y < screen.topLeftY + screen.screenHeight; y++) {
-            let glyph = screen.stage.getValue(x,y);
-            display.draw(x - screen.topLeftX, y - screen.topLeftY,
-                glyph.character,
-                glyph.fgColor,
-                glyph.bgColor
-            );
-        }
-    }
+    display.drawText(screen.origin.x, screen.origin.y, 'hi');
 
-    // render entities
-    let entities = main.world.entities;
-    let entity;
-    for (let i=0; i< entities.length; i++) {
-        entity = entities[i];
-        //only render if visible
-        if (entity.x >= screen.topLeftX && entity.y >= screen.topLeftY &&
-            entity.x < screen.topLeftX + screen.screenWidth &&
-            entity.y < screen.topLeftY + screen.screenHeight) {
-            
-            display.draw(
-                entity.x - screen.topLeftX,
-                entity.y - screen.topLeftY,
-                entity.character,
-                entity.fgColor,
-                entity.bgColor
-            );
-        }
-    }
+    //let screen = main.screen;
+    //screen.resetFocus(screen.player);
+    //let stage = screen.stage;
+    //let cursorX = screen._cursorX; // will be used to center rendering  
+    //let cursorY = screen._cursorY; // will be used to center rendering  
+    //let startX = screen._startX;   // will be used to position windows
+    //let startY = screen._startY;   // will be used to position windows
+    //let width = screen.width;
+    //let height = screen.height;
+    //let character, bgColor, fgColor;
+   //
+    //// keep cursor-x within left-bound
+    //screen.topLeftX = Math.max(0, screen.player.x - (screen.screenWidth/2));
+    //screen.topLeftX = Math.min(
+    //    screen.topLeftX, screen.stageWidth - screen.screenWidth);
+    //// keep cursor-y within top-bound
+    //screen.topLeftY = Math.max(0, screen.player.y - (screen.screenHeight/2));
+    //screen.topLeftY = Math.min(
+    //    screen.topLeftY, screen.stageHeight - screen.screenHeight);
+    //
+    //// render whole stage
+    //// to-do: center on cursor, not stage borders
+    //for (let x = screen.topLeftX; x < screen.topLeftX + screen.screenWidth; x++) {
+    //    for (let y = screen.topLeftY; y < screen.topLeftY + screen.screenHeight; y++) {
+    //        let glyph = screen.stage.getValue(x,y);
+    //        display.draw(x - screen.topLeftX,y - screen.topLeftY,
+    //            glyph.character,
+    //            glyph.fgColor,
+    //            glyph.bgColor
+    //        );
+    //    }
+    //}
+//
+    //// render entities
+    //let entities = main.world.entities;
+    //let entity;
+    //for (let i=0; i< entities.length; i++) {
+    //    entity = entities[i];
+    //    //only render if visible
+    //    if (entity.x >= screen.topLeftX && entity.y >= screen.topLeftY &&
+    //        entity.x < screen.topLeftX + screen.screenWidth &&
+    //        entity.y < screen.topLeftY + screen.screenHeight) {
+    //        
+    //        display.draw(
+    //            entity.x - screen.topLeftX,
+    //            entity.y - screen.topLeftY,
+    //            entity.character,
+    //            entity.fgColor,
+    //            entity.bgColor
+    //        );
+    //    }
+    //}
 };
 
 /////////////////////////////////////////////////////////////
