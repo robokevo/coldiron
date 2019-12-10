@@ -64,17 +64,6 @@ gameData.screenData.start.commands = {
     }
 };
 
-// "Start" enter function
-// gameData.screenData.start.enter = (main) => {
-//     if (main.session.stages === undefined) {
-//         let width = gameData.stageWidth;
-//         let height = gameData.stageHeight;
-//         let depth = gameData.stageDepth;
-//         main.session.stages = main.buildStages(width, height, depth);
-//     }
-// };
-
-
 // "Start" screen renderer
 gameData.screenData.start.render = (main, display) => {
     display.drawText(9,9, "start!");
@@ -173,59 +162,6 @@ gameData.screenData.play.render = function (main, display) {
     let title = main.name + " v. " + main.version;
     let xPos = screen.origin.x + Math.round(screen.screenWidth/2 - title.length/2);
     display.drawText(xPos, screen.origin.y, title);
-
-    //let screen = main.screen;
-    //screen.resetFocus(screen.player);
-    //let stage = screen.stage;
-    //let cursorX = screen._cursorX; // will be used to center rendering  
-    //let cursorY = screen._cursorY; // will be used to center rendering  
-    //let startX = screen._startX;   // will be used to position panels
-    //let startY = screen._startY;   // will be used to position panels
-    //let width = screen.width;
-    //let height = screen.height;
-    //let character, bgColor, fgColor;
-   //
-    //// keep cursor-x within left-bound
-    //screen.topLeftX = Math.max(0, screen.player.x - (screen.screenWidth/2));
-    //screen.topLeftX = Math.min(
-    //    screen.topLeftX, screen.stageWidth - screen.screenWidth);
-    //// keep cursor-y within top-bound
-    //screen.topLeftY = Math.max(0, screen.player.y - (screen.screenHeight/2));
-    //screen.topLeftY = Math.min(
-    //    screen.topLeftY, screen.stageHeight - screen.screenHeight);
-    //
-    //// render whole stage
-    //// to-do: center on cursor, not stage borders
-    //for (let x = screen.topLeftX; x < screen.topLeftX + screen.screenWidth; x++) {
-    //    for (let y = screen.topLeftY; y < screen.topLeftY + screen.screenHeight; y++) {
-    //        let glyph = screen.stage.getValue(x,y);
-    //        display.draw(x - screen.topLeftX,y - screen.topLeftY,
-    //            glyph.character,
-    //            glyph.fgColor,
-    //            glyph.bgColor
-    //        );
-    //    }
-    //}
-//
-    //// render entities
-    //let entities = main.world.entities;
-    //let entity;
-    //for (let i=0; i< entities.length; i++) {
-    //    entity = entities[i];
-    //    //only render if visible
-    //    if (entity.x >= screen.topLeftX && entity.y >= screen.topLeftY &&
-    //        entity.x < screen.topLeftX + screen.screenWidth &&
-    //        entity.y < screen.topLeftY + screen.screenHeight) {
-    //        
-    //        display.draw(
-    //            entity.x - screen.topLeftX,
-    //            entity.y - screen.topLeftY,
-    //            entity.character,
-    //            entity.fgColor,
-    //            entity.bgColor
-    //        );
-    //    }
-    //}
 };
 
 gameData.screenData.play.panelData = {
@@ -234,7 +170,7 @@ gameData.screenData.play.panelData = {
         origin: {x:undefined,y:undefined},
         width: 40,
         height: 20,
-        fgColor: 'white',
+        fgColor: 'rgb(200,200,200)',
 
         enter: function(main) {
             this.origin.x = Math.round((this.displayWidth-(this.width)-1));
@@ -244,7 +180,7 @@ gameData.screenData.play.panelData = {
             let title = '%c{' + this.fgColor + "}Level " + (main.world.level+1);
             let titleXY = {y: 1};
             titleXY.x = this.origin.x + Math.round(
-                this.width/2 - title.length/2);
+                this.width/2 - (title.length-20)/2);
             main.display.drawText(titleXY.x, titleXY.y, title, this.fgColor);
         },
 
@@ -302,7 +238,7 @@ gameData.attributeData.playerActor = {
         // to-do: replace lock w/ async/await function
         // to-do: only trigger when on same floor
         // to-do: determine if more rendering needs to happen
-        this.world.main.refresh(this._world.main.display);
+        this.world.main.screen._render(this.world.main.display);
         this.world.engine.lock();        
     }
 };
