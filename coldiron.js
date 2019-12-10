@@ -12,8 +12,8 @@ class coldIron {
         this._displayWidth = appData.maxDisplayWidth || 80;
         this._displayHeight = appData.maxDisplayHeight || 42;
         this._colors = appData.colors || ['rgb(0, 0, 0)', 'rgb(255, 255, 255)'];
-        this._bgColor = appData.bgColor || this._colors[0];
-        this._fgColor = appData.fgColor || this._colors[1];
+        this._fgColor = appData.fgColor || this._colors[0];
+        this._bgColor = appData.bgColor || this._colors[1];
         this._font = appData.font || 'monospace';
         this._fontSize = appData.fontSize || 14;
         this._spacing = appData.spacing || 1;
@@ -35,10 +35,24 @@ class coldIron {
         this.input.bindElement(this.handlerTarget);
     }
 
+    get appData() {
+        return this._appData;
+    }
+
     //
     // Returns display
     get display() {
         return this._display;
+    }
+
+    //
+    // Returns app name
+    get name() {
+        return this._name;
+    }
+
+    get version() {
+        return this._version;
     }
 
     //
@@ -122,11 +136,14 @@ coldIron.Screen = class {
     this.enter = screenData.enter || undefined;
     this.exit = screenData.exit || undefined;
     this._origin = screenData.origin || {x: 0, y: 0};
+    this._center = screenData.center || {x: undefined, y: undefined};
+    this._stageCenter = screenData.stageCenter || {x: undefined, y: undefined};
+    this._offset = screenData.offset || {x: undefined, y: undefined};
     this._width = screenData.width || this.main._displayWidth;
     this._height = screenData.height || this.main._displayHeight;
     this._colors = screenData.colors || this.main._colors;
-    this._bgColor = screenData.bgColor || this._colors[0];
-    this._fgColor = screenData.fgColor || this._colors[1];
+    this._fgColor = screenData.fgColor || this._colors[0];
+    this._bgColor = screenData.bgColor || this._colors[1];
     this._font = screenData.font || this.main._font;
     this._fontSize = screenData.fontSize || this.main._fontSize;
     this._spacing = screenData.spacing || this.main._spacing;
@@ -186,6 +203,32 @@ coldIron.Screen = class {
         this._origin.y = newOrigin.y;
     }
 
+    get center() {
+        return this._center;
+    }
+
+    set center(coordinate) {
+        this._center= {x: coordinate.x, y: coordinate.y};
+    }
+
+    get stageCenter() {
+        return this._stageCenter;
+    }
+
+    set stageCenter(coordinate) {
+        this._stageCenter.x = coordinate.x;
+        this._stageCenter.y = coordinate.y;
+    }
+
+    get offset() {
+        return this._offset;
+    }
+
+    set offset(coordinate) {
+        this._offset.x = coordinate.x;
+        this._offset.y = coordinate.y;
+    }
+
     get bgColor() {
         return this._bgColor;
     }
@@ -228,6 +271,26 @@ coldIron.Screen = class {
 
     resetFocus(coordinate) {
         this._cursor = {x: coordinate.x, y: coordinate.y};
+    }
+
+    get cursor() {
+        return this._cursor;
+    }
+
+    get cursorX() {
+        return this._cursor.x;
+    }
+    
+    set cursorX(newX) {
+        this._cursor.x = newX;
+    }
+
+    get cursorY() {
+        return this._cursor.y;
+    }
+
+    set cursorY(newY) {
+        this._cursor.y = newY;
     }
 
     //
@@ -639,6 +702,16 @@ coldIron.World = class  {
 
     set main(main) {
         this._main = main;
+    }
+
+    getTile(x, y) {
+        // to-do: return level-specific wall tile
+        let stage = this.stages[this.level];
+        if (stage.contains(x, y)) {
+            return stage.getValue(x,y);
+        } else {
+            return new coldIron.Tile.wallTile({});
+        }
     }
 
     // returns list within specified range of coordinates of targets

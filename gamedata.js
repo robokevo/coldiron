@@ -8,9 +8,9 @@ let gameData = {
     // to-do: prevent errors if stage is smaller than display
     maxDisplayWidth:  60,
     maxDisplayHeight: 30,
-    stageWidth: 80,
+    stageWidth: 70,
     stageHeight: 40,
-    colors: ['rgb(50, 0, 50)', 'rgb(0, 255, 0)'],
+    colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
     stageDepth: 1,
     stageOptions: {},
     screenData: {
@@ -23,10 +23,10 @@ let gameData = {
         play:   {
             name:   'Play',
             origin: {
-                x: 1,
-                y: 1
+                x: 0,
+                y: 0
             },
-            colors: ['rgb(0, 0, 50)', 'rgb(255, 0, 255)'],
+            colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)'],
         },
     }
 };
@@ -168,11 +168,11 @@ gameData.screenData.play.enter = (main) => {
 };
 
 // "Play" screen renderer
-gameData.screenData.play.render = (main, display) => {
-
+gameData.screenData.play.render = function (main, display) {
     let screen = main.screen;
-    let stage = screen.stage;
-    display.drawText(screen.origin.x, screen.origin.y, 'hi');
+    let title = main.name + " v. " + main.version;
+    let xPos = screen.origin.x + Math.round(screen.screenWidth/2 - title.length/2);
+    display.drawText(xPos, screen.origin.y, title);
 
     //let screen = main.screen;
     //screen.resetFocus(screen.player);
@@ -234,17 +234,50 @@ gameData.screenData.play.panelData = {
         origin: {x:undefined,y:undefined},
         width: 40,
         height: 20,
+        fgColor: 'white',
 
         enter: function(main) {
-            this.origin.x = Math.round((this.displayWidth-this.width)/2);
-            this.origin.y = 1;
+            this.origin.x = Math.round((this.displayWidth-(this.width)-1));
+            this.origin.y = 2;
+            this.center.x = Math.round(this.origin.x + this.width/2);
+            this.center.y = Math.round(this.origin.y + this.height/2);
+            let title = '%c{' + this.fgColor + "}Level " + (main.world.level+1);
+            let titleXY = {y: 1};
+            titleXY.x = this.origin.x + Math.round(
+                this.width/2 - title.length/2);
+            main.display.drawText(titleXY.x, titleXY.y, title, this.fgColor);
         },
 
         render: function(main, display) {
-            let testChar = 'c'.repeat(this.width);
-            testChar += '\n'; 
-            for (let i = 0; i < this.height; i++) {
-                display.drawText(this.origin.x, this.origin.y+i, testChar);
+            let screen = main.screen;
+            let stage = screen.stage;
+            this.stageCenter = main.world.player;
+            this.offset.x = this.stageCenter.x - this.center.x;
+            this.offset.y = this.stageCenter.y - this.center.y;
+            let entities = main.world.entities;
+            let tile, entity;
+            for (let x = this.origin.x; x < this.origin.x+this.width; x++) {
+                for (let y = this.origin.y; y < this.origin.y+this.height; y++) {
+                    tile = main.world.getTile(x+this.offset.x, y+this.offset.y);
+                    display.draw(x, y, 
+                        tile.character,
+                        tile.fgColor,
+                        tile.bgColor);
+                }
+            }
+            for (let i = 0; i < entities.length; i++) {
+                entity = entities[i];
+                if (entity.x - this.offset.x > this.origin.x &&
+                    entity.x - this.offset.x < (this.origin.x + this.width) &&
+                    entity.y - this.offset.y > this.origin.y &&
+                    entity.y - this.offset.y < (this.origin.y + this.height)) {
+                    display.draw(
+                        entity.x - this.offset.x,
+                        entity.y - this.offset.y,
+                        entity.character,
+                        entity.fgColor,
+                        entity.bgColor);
+                }
             }
         },
     },
