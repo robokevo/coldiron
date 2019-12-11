@@ -154,6 +154,7 @@ gameData.screenData.play.enter = (main) => {
     screen.screenHeight = screen.displayHeight;
     screen.stageWidth = stage.width;
     screen.stageHeight = stage.height;
+    screen.columnX = 10;
 };
 
 // "Play" screen renderer
