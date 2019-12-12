@@ -1,13 +1,13 @@
 'use strict';
 
 let gameData = {
-    name: "Moon Miners",
+    appName: "Moon Miners",
     version: "0.00",
     session:    null, // will eventually hold live game data
     // keep widths and heights even! messes w/ display math otherwise
     // to-do: prevent errors if stage is smaller than display
-    maxDisplayWidth:  60,
-    maxDisplayHeight: 30,
+    maxDisplayWidth:  80,
+    maxDisplayHeight: 40,
     stageWidth: 70,
     stageHeight: 40,
     colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
@@ -15,13 +15,13 @@ let gameData = {
     stageOptions: {},
     screenData: {
         start:  {
-            name:   'Start',
+            title:   'Start',
         },
         menu:   {
-            name:   'Menu',
+            title:   'Menu',
         },
         play:   {
-            name:   'Play',
+            title:   'Play',
             origin: {
                 x: 0,
                 y: 0
@@ -154,34 +154,34 @@ gameData.screenData.play.enter = (main) => {
     screen.screenHeight = screen.displayHeight;
     screen.stageWidth = stage.width;
     screen.stageHeight = stage.height;
+    screen.colX = 20;
+    screen.rowY = Math.round(screen.height/2 + 8);
 };
 
 // "Play" screen renderer
 gameData.screenData.play.render = function (main, display) {
     let screen = main.screen;
-    let title = main.name + " v. " + main.version;
+    let title = main.appName + " v. " + main.version;
     let xPos = screen.origin.x + Math.round(screen.screenWidth/2 - title.length/2);
     display.drawText(xPos, screen.origin.y, title);
 };
 
 gameData.screenData.play.panelData = {
     stage: {
-        name: 'Stage',
+        title: 'Stage',
         origin: {x:undefined,y:undefined},
         width: 40,
         height: 20,
         fgColor: 'rgb(200,200,200)',
 
         enter: function(main) {
-            this.origin.x = Math.round((this.displayWidth-(this.width)-1));
+            this.origin.x = main.screen.colX;
+            this.width = Math.round(main.screen.displayWidth - main.screen.colX-2);
             this.origin.y = 2;
+            this.height = main.screen.rowY - this.origin.y;
             this.center.x = Math.round(this.origin.x + this.width/2);
             this.center.y = Math.round(this.origin.y + this.height/2);
-            let title = '%c{' + this.fgColor + "}Level " + (main.world.level+1);
-            let titleXY = {y: 1};
-            titleXY.x = this.origin.x + Math.round(
-                this.width/2 - (title.length-20)/2);
-            main.display.drawText(titleXY.x, titleXY.y, title, this.fgColor);
+            this.drawPanel();
         },
 
         render: function(main, display) {
@@ -192,8 +192,9 @@ gameData.screenData.play.panelData = {
             this.offset.y = this.stageCenter.y - this.center.y;
             let entities = main.world.entities;
             let tile, entity;
-            for (let x = this.origin.x; x < this.origin.x+this.width; x++) {
-                for (let y = this.origin.y; y < this.origin.y+this.height; y++) {
+            // adding to origins/subtracting from width-height for border space
+            for (let x = this.origin.x+1; x < this.origin.x+this.width-1; x++) {
+                for (let y = this.origin.y+1; y < this.origin.y+this.height-1; y++) {
                     tile = main.world.getTile(x+this.offset.x, y+this.offset.y);
                     display.draw(x, y, 
                         tile.character,
@@ -204,9 +205,9 @@ gameData.screenData.play.panelData = {
             for (let i = 0; i < entities.length; i++) {
                 entity = entities[i];
                 if (entity.x - this.offset.x > this.origin.x &&
-                    entity.x - this.offset.x < (this.origin.x + this.width) &&
+                    entity.x - this.offset.x < (this.origin.x + this.width-1) &&
                     entity.y - this.offset.y > this.origin.y &&
-                    entity.y - this.offset.y < (this.origin.y + this.height)) {
+                    entity.y - this.offset.y < (this.origin.y + this.height-1)) {
                     display.draw(
                         entity.x - this.offset.x,
                         entity.y - this.offset.y,
@@ -217,9 +218,28 @@ gameData.screenData.play.panelData = {
             }
         },
     },
-    info: {
-        name: 'Info',
-        origin: {x:0,y:0}
+    messages: {
+        title: 'Messages',
+        origin: {x:0,y:0},
+        enter: function(main) {
+            this.origin.x = main.screen.colX;
+            this.origin.y = main.screen.rowY + 1;
+            this.width = Math.round(main.screen.displayWidth - main.screen.colX-2);
+            this.height = Math.round(main.screen.displayHeight- main.screen.rowY-2);
+            this.messages = main.world.player.getMessages();
+        },
+        render: function(main, display) {
+            this.drawPanel();
+            let messages = this.messages;
+            if (messages.length >= this.height) {
+                messages = messages.slice(messages.length - this.height+2); // +1 for border
+            }
+            let message;
+            for (let i = 0; i < messages.length; i++) {
+                message = messages[i];
+                display.drawText(this.origin.x+1, this.origin.y+messages.length-i, message);
+            }
+        }
     }
 };
 

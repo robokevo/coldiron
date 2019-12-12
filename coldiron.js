@@ -3,7 +3,7 @@
 class coldIron {
     constructor(appData, inputHandler, handlerTarget) {
         this._appData = appData;
-        this._name = appData.name;
+        this._appName = appData.appName;
         this._version = appData.version;
         // will eventually hold live game data
         this._display = undefined; // the ROT canvas object
@@ -33,6 +33,11 @@ class coldIron {
         // Initialize input handler
         this.input = inputHandler;
         this.input.bindElement(this.handlerTarget);
+        //this.input.setThrottle(100);
+    }
+
+    get appName() {
+        return this._appName;
     }
 
     get appData() {
@@ -69,8 +74,12 @@ class coldIron {
         return this._world;
     }
 
-    refresh(display) {
-        this.screen._render(display);
+    getTitle() {
+        return this._title;
+    }
+
+    refresh() {
+        this.screen._render(this.screen.display);
     }
 
     //
@@ -130,7 +139,7 @@ class coldIron {
 coldIron.Screen = class {
     constructor(screenData, main) {
     this.main = main;
-    this.name = screenData.name || "New Screen";
+    this._title = screenData.title || "New Screen";
     this.commands = screenData.commands || undefined;
     this.render = screenData.render || undefined;
     this.enter = screenData.enter || undefined;
@@ -139,18 +148,24 @@ coldIron.Screen = class {
     this._center = screenData.center || {x: undefined, y: undefined};
     this._stageCenter = screenData.stageCenter || {x: undefined, y: undefined};
     this._offset = screenData.offset || {x: undefined, y: undefined};
+    this._panelData = screenData.panelData || undefined;
+    this._panels = screenData.panels || undefined;
+    this._panelNames = screenData.panelNames || undefined;
+    // Screen specifics
     this._width = screenData.width || this.main._displayWidth;
     this._height = screenData.height || this.main._displayHeight;
     this._colors = screenData.colors || this.main._colors;
+    this._corners = screenData.corners || ['/', '\\', '\\', '/'];
+    this._borders = screenData.borders || ['_', '|'];
+    // Main screen settings set on entering
+    this._displayWidth = screenData.displayWidth || this.main._displayWidth;
+    this._displayHeight = screenData.displayHeight || this.main._displayHeight;
     this._fgColor = screenData.fgColor || this._colors[0];
     this._bgColor = screenData.bgColor || this._colors[1];
     this._font = screenData.font || this.main._font;
     this._fontSize = screenData.fontSize || this.main._fontSize;
     this._spacing = screenData.spacing || this.main._spacing;
-    this._title = screenData.title || undefined;
-    this._panelData = screenData.panelData || undefined;
-    this._panels = screenData.panels || undefined;
-    this._panelNames = screenData.panelNames || undefined;
+
     // re-render if dirty = true
     this._dirty = false;
     this._cursor = undefined;
@@ -164,8 +179,16 @@ coldIron.Screen = class {
         return this._width;
     }
 
+    set width(width) {
+        this._width = width;
+    }
+
     get height() {
         return this._height;
+    }
+
+    set height(height) {
+        this._height = height;
     }
 
     get displayWidth() {
@@ -269,10 +292,6 @@ coldIron.Screen = class {
         this._spacing = spacing;
     }
 
-    resetFocus(coordinate) {
-        this._cursor = {x: coordinate.x, y: coordinate.y};
-    }
-
     get cursor() {
         return this._cursor;
     }
@@ -293,6 +312,35 @@ coldIron.Screen = class {
         this._cursor.y = newY;
     }
 
+    getTitle() {
+        return this._title;
+    }
+
+    drawPanel() {
+        let topBar = 
+            this._corners[0] + this._borders[0].repeat(this._width-2) + this._corners[1];
+        let bodyBar =
+            this._borders[1] + this._borders[0].repeat(this._width-2) + this._borders[1];
+        let bottomBar =
+            this._corners[2] + this._borders[0].repeat(this._width-2) + this._corners[3];
+        this.display.drawText(this.origin.x, this.origin.y, topBar);
+        for (let i = 0; i < this._height-2; i++) {
+            this.display.drawText(this.origin.x, this.origin.y+i+1, bodyBar);
+        }
+        this.display.drawText(this.origin.x, this.origin.y+this.height-1, bottomBar);
+
+        //let title = '%c{' + this.fgColor + "}Level " + (main.world.level+1);
+        //let titleXY = {y: 2};
+        //titleXY.x = this.origin.x + Math.round(
+        //    this.width/2 - (title.length-20)/2);
+        //main.display.drawText(titleXY.x, titleXY.y, title, this.fgColor);
+
+    }
+
+    resetFocus(coordinate) {
+        this._cursor = {x: coordinate.x, y: coordinate.y};
+    }
+
     //
     // initialize values upon entering screen
     _enter() {
@@ -305,7 +353,7 @@ coldIron.Screen = class {
             fontSize: this.fontSize,
             spacing: this.spacing,            
         });
-        console.log("entered " + this.name + "screen");
+        console.log("entered " + this.getTitle() + "screen");
         if (this.enter) {
             this.enter(this.main);
             if (this._panels === undefined &&
@@ -335,7 +383,7 @@ coldIron.Screen = class {
     //
     // cleanup upon leaving a screen   
     _exit() {
-        console.log("exited " + this.name + "screen");
+        console.log("exited " + this.getTitle() + "screen");
         if (this.exit) {
             this.exit(this.main);
         }
@@ -444,6 +492,10 @@ coldIron.Panel = class extends coldIron.Screen {
         super(panelData, main);
         this._parent = parent;
         this._active = false;
+    }
+
+    get parent() {
+        return this._parent;
     }
 };
 
