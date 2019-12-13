@@ -1,13 +1,13 @@
 'use strict';
 
 let gameData = {
-    name: "Moon Miners",
+    appName: "Moon Miners",
     version: "0.00",
     session:    null, // will eventually hold live game data
     // keep widths and heights even! messes w/ display math otherwise
     // to-do: prevent errors if stage is smaller than display
-    maxDisplayWidth:  60,
-    maxDisplayHeight: 30,
+    maxDisplayWidth:  80,
+    maxDisplayHeight: 25,
     stageWidth: 70,
     stageHeight: 40,
     colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
@@ -15,18 +15,21 @@ let gameData = {
     stageOptions: {},
     screenData: {
         start:  {
-            name:   'Start',
+            title:   'Start',
         },
         menu:   {
-            name:   'Menu',
+            title:   'Menu',
         },
         play:   {
-            name:   'Play',
+            title:   'Play',
             origin: {
                 x: 0,
                 y: 0
             },
-            colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)'],
+            colors: ['rgb(100, 150, 150)', 'rgb(30, 30, 50)'],
+            getTitle: function() {
+                return this.main.appName + " v. " + this.main.version;
+            }
         },
     }
 };
@@ -154,35 +157,40 @@ gameData.screenData.play.enter = (main) => {
     screen.screenHeight = screen.displayHeight;
     screen.stageWidth = stage.width;
     screen.stageHeight = stage.height;
+<<<<<<< HEAD
     screen.columnX = 10;
+=======
+    screen.colX = 21;
+    screen.rowY = Math.round(screen.height/2 + 5);
+    screen.drawPanel({title: true});
+>>>>>>> cctut06
 };
 
 // "Play" screen renderer
 gameData.screenData.play.render = function (main, display) {
-    let screen = main.screen;
-    let title = main.name + " v. " + main.version;
-    let xPos = screen.origin.x + Math.round(screen.screenWidth/2 - title.length/2);
-    display.drawText(xPos, screen.origin.y, title);
+    //let screen = main.screen;
+    //let title = ;
+    //let xPos = screen.origin.x + Math.round(screen.screenWidth/2 - title.length/2);
+    //display.drawText(xPos, screen.origin.y, title);
 };
 
 gameData.screenData.play.panelData = {
     stage: {
-        name: 'Stage',
+        title: 'Stage',
         origin: {x:undefined,y:undefined},
         width: 40,
         height: 20,
-        fgColor: 'rgb(200,200,200)',
+        fgColor: 'rgb(200,200,250)',
+        bgColor: 'rgb(25,25,25)',
 
         enter: function(main) {
-            this.origin.x = Math.round((this.displayWidth-(this.width)-1));
-            this.origin.y = 2;
+            this.origin.x = main.screen.colX;
+            this.width = Math.round(main.screen.displayWidth - main.screen.colX);
+            this.origin.y = 1;
+            this.height = main.screen.rowY - this.origin.y;
             this.center.x = Math.round(this.origin.x + this.width/2);
             this.center.y = Math.round(this.origin.y + this.height/2);
-            let title = '%c{' + this.fgColor + "}Level " + (main.world.level+1);
-            let titleXY = {y: 1};
-            titleXY.x = this.origin.x + Math.round(
-                this.width/2 - (title.length-20)/2);
-            main.display.drawText(titleXY.x, titleXY.y, title, this.fgColor);
+            this.drawPanel({title: true});
         },
 
         render: function(main, display) {
@@ -190,11 +198,12 @@ gameData.screenData.play.panelData = {
             let stage = screen.stage;
             this.stageCenter = main.world.player;
             this.offset.x = this.stageCenter.x - this.center.x;
-            this.offset.y = this.stageCenter.y - this.center.y;
+            this.offset.y = this.stageCenter.y - this.center.y + 1;
             let entities = main.world.entities;
             let tile, entity;
-            for (let x = this.origin.x; x < this.origin.x+this.width; x++) {
-                for (let y = this.origin.y; y < this.origin.y+this.height; y++) {
+            // adding to origins/subtracting from width-height for border space
+            for (let x = this.origin.x+1; x < this.origin.x+this.width-1; x++) {
+                for (let y = this.origin.y+1; y < this.origin.y+this.height-1; y++) {
                     tile = main.world.getTile(x+this.offset.x, y+this.offset.y);
                     display.draw(x, y, 
                         tile.character,
@@ -205,9 +214,9 @@ gameData.screenData.play.panelData = {
             for (let i = 0; i < entities.length; i++) {
                 entity = entities[i];
                 if (entity.x - this.offset.x > this.origin.x &&
-                    entity.x - this.offset.x < (this.origin.x + this.width) &&
+                    entity.x - this.offset.x < (this.origin.x + this.width-1) &&
                     entity.y - this.offset.y > this.origin.y &&
-                    entity.y - this.offset.y < (this.origin.y + this.height)) {
+                    entity.y - this.offset.y < (this.origin.y + this.height-1)) {
                     display.draw(
                         entity.x - this.offset.x,
                         entity.y - this.offset.y,
@@ -217,10 +226,90 @@ gameData.screenData.play.panelData = {
                 }
             }
         },
+
+        getTitle:   function() {
+            return 'Floor ' + (this.main.world.level + 1);
+        },
     },
-    info: {
-        name: 'Info',
-        origin: {x:0,y:0}
+    messages: {
+        title: 'Messages',
+        origin: {x:0,y:0},
+        fgColor: 'rgb(250,250,255)',
+        bgColor: 'rgb(25,25,25)',
+        enter: function(main) {
+            this.origin.x = main.screen.colX;
+            this.origin.y = main.screen.rowY-1;
+            this.width = Math.round(main.screen.displayWidth - main.screen.colX);
+            this.height = Math.round(main.screen.displayHeight- main.screen.rowY+1);
+            this.messages = main.world.player.getMessages();
+        },
+        render: function(main, display) {
+            this.drawPanel({title: true});
+            let messages = this.messages;
+            if (messages.length >= this.height) {
+                messages = messages.slice(messages.length - this.height+2); // +1 for border
+            }
+            let message, fgColor, bgColor;
+            for (let i = 0; i < messages.length; i++) {
+                fgColor = ROT.Color.fromString(this.fgColor);
+                for (let j = messages.length-i; j > 0; j--) {
+                    ROT.Color.add_(fgColor, [-15, -25, -25]);
+                }
+                fgColor = ROT.Color.toRGB(fgColor);
+                message = "%c{" + fgColor + "}" + "%b{" + this.bgColor + "}" +
+                    messages[i];
+                display.drawText(this.origin.x+1, this.origin.y+messages.length-i, message);
+            }
+        }
+    },
+    status: {
+        title: 'Status',
+        origin: {x:0,y:0},
+        fgColor: 'rgb(200,200,250)',
+        bgColor: 'rgb(25,25,25)',
+        enter: function(main) {
+            //this.origin.x = main.screen.colX;
+            this.origin.y = 1;
+            this.width = Math.round(this.origin.x + main.screen.colX);
+            this.height = Math.round(12);
+            this.player = main.world.player;
+            this.player.status = this;
+            this.target = this.player;
+            console.log(this);
+            this.drawPanel({title: true});
+            if (this.target.portrait) {
+                let portrait = this.target.portrait;
+                for (let i = 0; i < portrait.length; i++) {
+                    this.display.drawText(
+                        this.origin.x+1,this.origin.y+1+i,portrait[i]);
+                }
+            }
+            this.display.drawText(this.origin.x+12,this.origin.y+2,
+                '%b{' + this.bgColor + '}You (%c{' + this.target.fgColor +
+                `}${this.target.character}%c{` + this.fgColor + '}%c{})');
+            this.display.drawText(this.origin.x+12,this.origin.y+3,
+                `%b{${this.bgColor}}Lvl. #`);
+        },
+        render: function(main, display) {
+            this.display.drawText(this.origin.x+1, this.origin.y+8,
+                `%b{${this.bgColor}}HP: ${this.target._hp}/${this.target._maxHp}`);
+        }
+    },
+    legend: {
+        title: 'Legend',
+        origin: {x:0,y:0},
+        fgColor: 'rgb(200,200,250)',
+        bgColor: 'rgb(25,25,25)',
+        enter: function(main) {
+            //this.origin.x = main.screen.colX;
+            this.origin.y = Math.round(13);
+            this.width = Math.round(this.origin.x + main.screen.colX);
+            this.height = Math.round(this.displayHeight/2-1);
+            console.log(this);
+            this.drawPanel({title: true});
+        },
+        render: function(main, display) {
+        }
     }
 };
 
@@ -231,6 +320,14 @@ gameData.attributeData = {};
 gameData.attributeData.playerActor = {
     name: 'playerActor',
     groupName: 'actor',
+    portrait: [
+    '...%c{white}____%c{}...',
+    '..%c{white}/ ___\\%c{}..',
+    '.%c{white}()/    \\%c{}.',
+    '..%c{white}\\\\____/%c{}.',
+    '.%c{white}/      \\%c{}.',
+    '.%c{white}|%c{}_%c{white}|%c{}___%c{}%c{white}||%c{}.',
+    ],
     act: function() {
         // re-render screen
         // to-do: only re-render scene panel
@@ -263,7 +360,7 @@ gameData.attributeData.fungusActor = {
                     let entity = new coldIron.Entity(gameData.entityData.fungus);
                     entity.x = target.x;
                     entity.y = target.y;
-                    this.world.sendMessageInRange(this, 5, 'it spreadin!');
+                    this.world.sendMessageInRange(this, 5, 'The fungus spreads!');
                     this.world.addEntity(entity);
                     this._spawnRemaining--;
                 }
@@ -330,8 +427,9 @@ gameData.attributeData.destructible = {
         this.setHp(-damage);
         // If 0 or less HP, remove selves from map
         if (this.getHp() <= 0) {
-            this.world.sendMessage(attacker, 'You kill the [monster]');
-            this.world.sendMessage(this, 'You were killed by [killer]');
+            this.world.sendMessage(attacker, `You kill the ${this.name}!`);
+            // to-do: write object to return 'a'/'the' article
+            this.world.sendMessage(this, `You were killed by ${attacker.name}`);
             this.world.removeEntity(this);
         }
     }
@@ -352,11 +450,13 @@ gameData.attributeData.attacker = {
             let attack = this.getAtkPower();
             let defense = target.getDefense();
             var maxDmg = Math.max(0, attack - defense);
+            var dmg = 1 + Math.floor(Math.random() * maxDmg);
+            this.world.sendMessage(
+                this,
+                `You strike the ${target.name} for ${dmg} damage!`);
+            this.world.sendMessage(target, `The ${this.name} strikes you for ${dmg} damage!`);
 
-            this.world.sendMessage(this, 'You strike the [monster] for [damage]');
-            this.world.sendMessage(target, 'The [attacker] strikes you for [damage]');
-
-            target.takeDamage(this, 1 + Math.floor(Math.random() * maxDmg));
+            target.takeDamage(this, dmg);
         }
         this.continue();
     }
