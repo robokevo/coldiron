@@ -224,7 +224,7 @@ gameData.screenData.play.panelData = {
         },
 
         getTitle:   function() {
-            return 'Floor ' + (this.main.world.level + 1);
+            return 'Floor ' + (this.main.world.depth + 1);
         },
     },
     messages: {

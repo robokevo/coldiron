@@ -25,7 +25,7 @@ class coldIron {
         this.session =
         appData.session || {
             stages: undefined,
-            currentLevel: 0,
+            currentDepth: 0,
             };
         this.handlerTarget = handlerTarget || window;
 
@@ -613,6 +613,29 @@ coldIron.Tile.wallTile = class extends coldIron.Tile {
     }
 };
 
+coldIron.Tile.StairsUp = class extends coldIron.Tile {
+    constructor(properties) {
+        super(properties);
+        this._traversable = properties.traversable || false;
+        this._destructible = properties.destructible || true;
+        this._character = properties.character || '<';
+        this._fgColor = properties.fgColor || 'yellow';
+        this._bgColor = properties.bgColor || 'black';
+    }
+};
+
+coldIron.Tile.StairsDown = class extends coldIron.Tile {
+    constructor(properties) {
+        super(properties);
+        this._traversable = properties.traversable || false;
+        this._destructible = properties.destructible || true;
+        this._character = properties.character || '>';
+        this._fgColor = properties.fgColor || 'orange';
+        this._bgColor = properties.bgColor || 'black';
+    }
+};
+
+
 coldIron.Entity = class extends coldIron.Glyph {
     constructor(properties) {
         super(properties);
@@ -700,7 +723,7 @@ coldIron.World = class  {
         this._width = appData.stageWidth || this._displayWidth;
         this._height = appData.stageHeight || this._displayHeight;
         this._depth = appData.worldDepth || 0;
-        this._currentLevel = appData.currentLevel || 0;
+        this._currentDepth = appData.currentDepth || 0;
         this._stages = appData.stages || undefined;
         this._player = appData.player || player || undefined;
         this._main = undefined;
@@ -744,15 +767,15 @@ coldIron.World = class  {
     }
 
     get stage() {
-        return this._stages[this._currentLevel];
+        return this._stages[this._currentDepth];
     }
 
-    get level() {
-        return this._currentLevel;
+    get depth() {
+        return this._currentDepth;
     }
 
-    set level(level) {
-        this._currentLevel = level;
+    set depth(depth) {
+        this._currentDepth = depth;
     }
 
     get engine() {
@@ -777,7 +800,7 @@ coldIron.World = class  {
 
     getTile(x, y) {
         // to-do: return level-specific wall tile
-        let stage = this.stages[this.level];
+        let stage = this.stages[this.depth];
         if (stage.contains(x, y)) {
             return stage.getValue(x,y);
         } else {
@@ -893,7 +916,7 @@ coldIron.World = class  {
     destroy(x, y) {
         // to-do; level-specific floor replacement
         // to-do; destroying other objects
-        let stage = this.stages[this.level];
+        let stage = this.stages[this.depth];
         let target = stage.getValue(x,y);
         if (target.destructible) {
             stage.setValue(x, y,
@@ -914,7 +937,7 @@ coldIron.World = class  {
 
     getRandomFloorXY() {
         let tile = {x: undefined, y: undefined};
-        let stage = this.stages[this.level];
+        let stage = this.stages[this.depth];
         let valid = false;
         while (!this.isFloorTile(tile.x, tile.y)) {
             tile.x = Math.floor(Math.random() * this._width);
@@ -955,7 +978,7 @@ coldIron.World = class  {
             let generator, success;
             // will instantiate generators until successful stage condition is met
             for (let i = 0; i < depth; i++) {
-                stage = new coldIron.Geometry.Grid(width, height);
+                stage = new coldIron.Math.Grid(width, height);
                 while (!success) {
                     generator = new ROT.Map.Cellular(width, height);
                     generator.randomize(0.5);

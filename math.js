@@ -1,8 +1,8 @@
 'use strict';
 
-coldIron.Geometry = {};
+coldIron.Math = {};
 
-coldIron.Geometry.Grid = class{
+coldIron.Math.Grid = class{
     constructor(width, height, data) {
     this._width = width;
     this._height = height;
@@ -32,7 +32,7 @@ coldIron.Geometry.Grid = class{
 
 };
 
-coldIron.Geometry.getDistance = function(startX, startY, endX, endY) {
+coldIron.Math.getDistance = function(startX, startY, endX, endY) {
     // calculates a straight line between two points
     if (startX === endX) {
         return Math.abs(endY - startY);
