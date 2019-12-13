@@ -74,10 +74,6 @@ class coldIron {
         return this._world;
     }
 
-    getTitle() {
-        return this._title;
-    }
-
     refresh() {
         this.screen._render(this.screen.display);
     }
@@ -126,7 +122,7 @@ class coldIron {
         // ROT caching option for performance
         // may need to disable if many tile types are used
         // (temporarily disabled to test performance)
-        // ROT.Display.Rect.cache = true;
+        ROT.Display.Rect.cache = true;
         //
         // Launch into first screen
         this.switchScreen(launchScreen);
@@ -140,6 +136,7 @@ coldIron.Screen = class {
     constructor(screenData, main) {
     this.main = main;
     this._title = screenData.title || "New Screen";
+    this.getTitle = screenData.getTitle || undefined;
     this.commands = screenData.commands || undefined;
     this.render = screenData.render || undefined;
     this.enter = screenData.enter || undefined;
@@ -312,35 +309,6 @@ coldIron.Screen = class {
         this._cursor.y = newY;
     }
 
-    getTitle() {
-        return this._title;
-    }
-
-    drawPanel() {
-        let topBar = 
-            this._corners[0] + this._borders[0].repeat(this._width-2) + this._corners[1];
-        let bodyBar =
-            this._borders[1] + this._borders[0].repeat(this._width-2) + this._borders[1];
-        let bottomBar =
-            this._corners[2] + this._borders[0].repeat(this._width-2) + this._corners[3];
-        this.display.drawText(this.origin.x, this.origin.y, topBar);
-        for (let i = 0; i < this._height-2; i++) {
-            this.display.drawText(this.origin.x, this.origin.y+i+1, bodyBar);
-        }
-        this.display.drawText(this.origin.x, this.origin.y+this.height-1, bottomBar);
-
-        //let title = '%c{' + this.fgColor + "}Level " + (main.world.level+1);
-        //let titleXY = {y: 2};
-        //titleXY.x = this.origin.x + Math.round(
-        //    this.width/2 - (title.length-20)/2);
-        //main.display.drawText(titleXY.x, titleXY.y, title, this.fgColor);
-
-    }
-
-    resetFocus(coordinate) {
-        this._cursor = {x: coordinate.x, y: coordinate.y};
-    }
-
     //
     // initialize values upon entering screen
     _enter() {
@@ -353,7 +321,7 @@ coldIron.Screen = class {
             fontSize: this.fontSize,
             spacing: this.spacing,            
         });
-        console.log("entered " + this.getTitle() + "screen");
+        console.log("entered " + this._getTitle() + "screen");
         if (this.enter) {
             this.enter(this.main);
             if (this._panels === undefined &&
@@ -383,7 +351,7 @@ coldIron.Screen = class {
     //
     // cleanup upon leaving a screen   
     _exit() {
-        console.log("exited " + this.getTitle() + "screen");
+        console.log("exited " + this._getTitle() + "screen");
         if (this.exit) {
             this.exit(this.main);
         }
@@ -466,6 +434,55 @@ coldIron.Screen = class {
         }
     }
 
+    _getTitle() {
+        if (this.getTitle) {
+            //console.log(this.getTitle);
+            return this.getTitle();
+        } else {
+            return this._title;
+        }  
+    }
+
+    //
+    // Draw the border,body, and title of a screen or panel
+    // options: {
+    //  border: true/false  // show the border lines
+    //  body: true/false    // show the body
+    //  title: true/false   // show the title at the top
+    // }
+    drawPanel(panelOptions) {
+        let options = panelOptions || {};
+        let topBar = "%b{" + this.bgColor + "}" +
+            this._corners[0] + this._borders[0].repeat(this._width-2) + this._corners[1];
+        let bodyLine;
+        if (options.body) {
+            bodyLine = "%b{" + this.bgColor + "}" +
+            this._borders[1] + this._borders[0].repeat(this._width-2) + this._borders[1];
+        } else {
+            bodyLine = "%b{" + this.bgColor + "}" +
+            this._borders[1] + " ".repeat(this._width-2) + this._borders[1];
+        }
+        let bottomBar = "%b{" + this.bgColor + "}" +
+            this._corners[2] + this._borders[0].repeat(this._width-2) + this._corners[3];
+        this.display.drawText(this.origin.x, this.origin.y, topBar);
+        for (let i = 0; i < this._height-2; i++) {
+            this.display.drawText(this.origin.x, this.origin.y+i+1, bodyLine);
+        }
+        this.display.drawText(this.origin.x, this.origin.y+this.height-1, bottomBar);
+
+        if (options.title) {
+            let title = this._getTitle();
+            let titleX = this.origin.x + Math.round((this.width/2) - title.length/2);
+            title = "%c{" + this.fgColor + "}" + "%b{" + this.bgColor + "}" + title;
+            this.display.drawText(titleX, this.origin.y, title);
+        }
+
+    }
+
+    resetFocus(coordinate) {
+        this._cursor = {x: coordinate.x, y: coordinate.y};
+    }
+
     // Screen-moving functions
     move(dX, dY) {
         // Positive dX moves right, negative dY moves down
@@ -485,6 +502,7 @@ coldIron.Screen = class {
         //    Math.min(this.stageHeight - 1, this._cursorY + dY));
         //
     }
+
 };
 
 coldIron.Panel = class extends coldIron.Screen {
@@ -492,6 +510,7 @@ coldIron.Panel = class extends coldIron.Screen {
         super(panelData, main);
         this._parent = parent;
         this._active = false;
+        //this.getTitle = panelData.getTitle || undefined;
     }
 
     get parent() {
@@ -803,24 +822,20 @@ coldIron.World = class  {
         return validTargets;
     }
 
-    sendMessage(target, message, args) {
+    sendMessage(target, message) {
         // Make sure recipient can recieve message
         if (target.hasAttribute('messageRecipient')) {
-            // if args passed, format msg
-            if (args) {
-                // formatting function
-            }
             target.receiveMessage(message);
         }
     }
 
-    sendMessageInRange(center, range, message, args) {
+    sendMessageInRange(center, range, message) {
         let targets = this.findInRange(center, range, 'entity');
         let entity;
         for (let t = 0; t < targets.length; t++) {
             entity = targets[t];
             if (entity.hasAttribute('messageRecipient')) {
-                this.sendMessage(entity, message, args);
+                this.sendMessage(entity, message);
             }
         }
     }
