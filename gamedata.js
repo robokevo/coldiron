@@ -11,7 +11,7 @@ let gameData = {
     stageWidth: 70,
     stageHeight: 40,
     colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
-    stageDepth: 1,
+    worldDepth: 3,
     stageOptions: {},
     screenData: {
         start:  {
@@ -157,13 +157,9 @@ gameData.screenData.play.enter = (main) => {
     screen.screenHeight = screen.displayHeight;
     screen.stageWidth = stage.width;
     screen.stageHeight = stage.height;
-<<<<<<< HEAD
-    screen.columnX = 10;
-=======
     screen.colX = 21;
     screen.rowY = Math.round(screen.height/2 + 5);
     screen.drawPanel({title: true});
->>>>>>> cctut06
 };
 
 // "Play" screen renderer
@@ -253,7 +249,7 @@ gameData.screenData.play.panelData = {
             for (let i = 0; i < messages.length; i++) {
                 fgColor = ROT.Color.fromString(this.fgColor);
                 for (let j = messages.length-i; j > 0; j--) {
-                    ROT.Color.add_(fgColor, [-15, -25, -25]);
+                    ROT.Color.add_(fgColor, [-25, -30, -30]);
                 }
                 fgColor = ROT.Color.toRGB(fgColor);
                 message = "%c{" + fgColor + "}" + "%b{" + this.bgColor + "}" +
@@ -275,7 +271,6 @@ gameData.screenData.play.panelData = {
             this.player = main.world.player;
             this.player.status = this;
             this.target = this.player;
-            console.log(this);
             this.drawPanel({title: true});
             if (this.target.portrait) {
                 let portrait = this.target.portrait;
@@ -305,7 +300,6 @@ gameData.screenData.play.panelData = {
             this.origin.y = Math.round(13);
             this.width = Math.round(this.origin.x + main.screen.colX);
             this.height = Math.round(this.displayHeight/2-1);
-            console.log(this);
             this.drawPanel({title: true});
         },
         render: function(main, display) {

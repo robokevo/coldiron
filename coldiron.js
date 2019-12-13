@@ -321,7 +321,7 @@ coldIron.Screen = class {
             fontSize: this.fontSize,
             spacing: this.spacing,            
         });
-        console.log("entered " + this._getTitle() + "screen");
+        console.log("entered " + this._title + " screen");
         if (this.enter) {
             this.enter(this.main);
             if (this._panels === undefined &&
@@ -351,7 +351,7 @@ coldIron.Screen = class {
     //
     // cleanup upon leaving a screen   
     _exit() {
-        console.log("exited " + this._getTitle() + "screen");
+        console.log("exited " + this._title + " screen");
         if (this.exit) {
             this.exit(this.main);
         }
@@ -699,7 +699,7 @@ coldIron.World = class  {
         // this._title = gameData.title || undefined;
         this._width = appData.stageWidth || this._displayWidth;
         this._height = appData.stageHeight || this._displayHeight;
-        this._depth = appData.stageDepth || 0;
+        this._depth = appData.worldDepth || 0;
         this._currentLevel = appData.currentLevel || 0;
         this._stages = appData.stages || undefined;
         this._player = appData.player || player || undefined;
