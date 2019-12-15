@@ -122,7 +122,8 @@ class coldIron {
         // ROT caching option for performance
         // may need to disable if many tile types are used
         // (temporarily disabled to test performance)
-        ROT.Display.Rect.cache = true;
+        // to-do: enable for release
+        // ROT.Display.Rect.cache = true;
         //
         // Launch into first screen
         this.switchScreen(launchScreen);
@@ -562,7 +563,7 @@ coldIron.Glyph = class {
 coldIron.Tile = class extends coldIron.Glyph {
     constructor(properties) {
         super(properties);
-        this._traversable = properties.traversable || false;
+        this._passable = properties.passable || false;
         this._destructible = properties.destructible || false;
     }
 
@@ -570,8 +571,8 @@ coldIron.Tile = class extends coldIron.Glyph {
         return this._glyph;
     }
 
-    get traversable() {
-        return this._traversable;
+    get passable() {
+        return this._passable;
     }
 
     get destructible() {
@@ -580,10 +581,10 @@ coldIron.Tile = class extends coldIron.Glyph {
 };
 
 
-coldIron.Tile.nullTile = class extends coldIron.Tile {
+coldIron.Tile.NullTile = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
-        this._traversable = properties.traversable || false;
+        this._passable = properties.passable || false;
         this._destructible = properties.destructible || false;
         this._character = '!';
         this._fgColor = 'pink';
@@ -591,10 +592,10 @@ coldIron.Tile.nullTile = class extends coldIron.Tile {
     }
 };
 
-coldIron.Tile.floorTile = class extends coldIron.Tile {
+coldIron.Tile.FloorTile = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
-        this._traversable = properties.traversable || true;
+        this._passable = properties.passable || true;
         this._destructible = properties.destructible || false;
         this._character = properties.character || '.';
         this._fgColor = properties.fgColor || 'goldenrod';
@@ -602,10 +603,10 @@ coldIron.Tile.floorTile = class extends coldIron.Tile {
     }
 };
 
-coldIron.Tile.wallTile = class extends coldIron.Tile {
+coldIron.Tile.WallTile = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
-        this._traversable = properties.traversable || false;
+        this._passable = properties.passable || false;
         this._destructible = properties.destructible || true;
         this._character = properties.character || '#';
         this._fgColor = properties.fgColor || 'blue';
@@ -616,7 +617,7 @@ coldIron.Tile.wallTile = class extends coldIron.Tile {
 coldIron.Tile.StairsUp = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
-        this._traversable = properties.traversable || false;
+        this._passable = properties.passable || true;
         this._destructible = properties.destructible || true;
         this._character = properties.character || '<';
         this._fgColor = properties.fgColor || 'yellow';
@@ -627,7 +628,7 @@ coldIron.Tile.StairsUp = class extends coldIron.Tile {
 coldIron.Tile.StairsDown = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
-        this._traversable = properties.traversable || false;
+        this._passable = properties.passable || true;
         this._destructible = properties.destructible || true;
         this._character = properties.character || '>';
         this._fgColor = properties.fgColor || 'orange';
@@ -798,22 +799,27 @@ coldIron.World = class  {
         this._main = main;
     }
 
-    getTile(x, y) {
-        // to-do: return level-specific wall tile
-        let stage = this.stages[this.depth];
+    getTile(x, y, z) {
+        let depth = z || this.depth;
+        let stage = this.stages[depth];
         if (stage.contains(x, y)) {
             return stage.getValue(x,y);
         } else {
-            return new coldIron.Tile.wallTile({});
+        // to-do: return level-specific wall tile
+            return new coldIron.Tile.WallTile({});
         }
     }
 
     // returns list within specified range of coordinates of targets
-    // targets - type of target ('floor', 'entity')
+    // targets - type of target:
+    //    'floor': neighboring floor tiles
+    //    'entity': neighboring entities
+    //    'random': randomized tiles in range
     // range - range around entity to explore from
-    findInRange(center, range, targets) {
+    findInRange(center, range, targets, sourceGrid) {
         let totalRange = [];
         let validTargets = [];
+        let source = sourceGrid || this.stage;
         let entity;
         for (let x = -range; x <= range; x++) {
             for (let y = -range; y <= range; y++) {
@@ -821,7 +827,7 @@ coldIron.World = class  {
                     let point = {};
                     point.x = x + center.x;
                     point.y = y + center.y;
-                    if (this.stage.contains(point.x,point.y)) {
+                    if (source.contains(point.x,point.y)) {
                         totalRange.push(point);
                     }
                 }
@@ -841,10 +847,16 @@ coldIron.World = class  {
                     validTargets.push(entity);
                 }
             }
+            if (targets === 'random') {
+                coldIron.Math.shuffle(totalRange);
+                validTargets = totalRange;
+            }
         }
         return validTargets;
     }
 
+    // Pass a message to an entity
+    // to-do: toggle a flag once a monster has 'announced' its presence
     sendMessage(target, message) {
         // Make sure recipient can recieve message
         if (target.hasAttribute('messageRecipient')) {
@@ -852,6 +864,10 @@ coldIron.World = class  {
         }
     }
 
+
+    // Passes a message within range
+    // to-do: have option for 'sound' to work via pathing instead
+    // of absolute distance
     sendMessageInRange(center, range, message) {
         let targets = this.findInRange(center, range, 'entity');
         let entity;
@@ -913,20 +929,21 @@ coldIron.World = class  {
         }
     }
 
-    destroy(x, y) {
+    destroy(x, y, z) {
+        let depth = z || this.depth;
         // to-do; level-specific floor replacement
         // to-do; destroying other objects
-        let stage = this.stages[this.depth];
+        let stage = this.stages[depth];
         let target = stage.getValue(x,y);
         if (target.destructible) {
             stage.setValue(x, y,
-                new coldIron.Tile.floorTile(this.main.appData.stageOptions));
+                new coldIron.Tile.FloorTile(this.main.appData.stageOptions));
         }
     }
 
     isFloorTile(x, y) {
         let clear;
-        if (!(this.stage.getValue(x, y) instanceof coldIron.Tile.floorTile) ||
+        if (!(this.stage.getValue(x, y) instanceof coldIron.Tile.FloorTile) ||
         this.getEntityAt(x, y)) {
             clear = false;
         } else {
@@ -950,53 +967,112 @@ coldIron.World = class  {
     // Constructor for stages
     // Instance method on coldIron object
     buildStages(appData) {
+        let RegionHandler = class{
+            constructor() {
+                // depth level used as key for regions
+                this.regions = {};
+                this._currentDepth = 0;
+                this.regionMaps = [];
+            }
+
+            get depth() {
+                return this._currentDepth;
+            }
+
+            set depth(depthLevel) {
+                this._currentDepth = depthLevel;
+            }
+
+            getRegion(regionNumber) {
+                let regions = this.regions[this.depth];
+                return regions.filter(r=>r.number === regionNumber)[0];
+            }
+
+            wallRegion(stage, regionNumber){
+                let region = this.getRegion(regionNumber);
+                let point = {};
+                point.x = undefined;
+                point.y = undefined;
+                let pointStr;
+                for (let i = 0; i < region.data.length; i++) {
+                    pointStr = region.data[i]; 
+                    [point.x, point.y] =
+                        [parseInt(pointStr[0]), parseInt(pointStr[2])];
+                    stage.setValue(point.x, point.y, new coldIron.Tile.WallTile(options));
+                }
+            }
+        };
+
+        let Region = class {
+            constructor() {
+                this.data = [];
+                this.number = undefined;
+                this.size = 0;
+            }
+
+            addValue(x, y) {
+                this.data.push(x+','+y);
+                this.size++;
+            }
+
+            contains(x, y) {
+                if (this.data.indexOf(x+','+y) === -1) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        };
 
         let width = this._width;
         let height = this._height;
-        let depth = this._depth;
+        let depth = appData.worldDepth | 1;
         let options = appData.stageOptions || {};
         let stages = [];
-        let regions = [];
-        let stage;
+        let regionMaps = [];
+        //let regionHandler = new RegionHandler();
 
-        //
-        // actually assigns values from generated level
-        let createCallback = (x,y,v) =>{
-            if (v === 1) {
-                stage.setValue(x, y, new coldIron.Tile.floorTile(options));
-            } else {
-                stage.setValue(x, y, new coldIron.Tile.wallTile(options));
-            }
-        };
 
         //
         // stage generator; employs ROT random level generation
-        let generateStages = () => {
-            //let floor = new coldIron.Tile.floorTile();
-            //let wall = new coldIron.Tile.wallTile();
-            let totalIterations = 4;
-            let generator, success;
-            // will instantiate generators until successful stage condition is met
-            for (let i = 0; i < depth; i++) {
-                stage = new coldIron.Math.Grid(width, height);
-                while (!success) {
-                    generator = new ROT.Map.Cellular(width, height);
-                    generator.randomize(0.5);
-                    if (true) {
-                        success = true;
-                    }
-                }
-                // -2 because one last iteration happens after
-                for (let i = 0; i < totalIterations - 2; i++) {
-                    generator.create();
-                }
-                // stage values assigned from generator
-                generator.create(createCallback);
+        
 
-                stages.push(stage);
+
+        let generateStage = () => {
+            let totalIterations = 4;
+            let stage = new coldIron.Math.Grid(width, height);
+            let regionMap = new coldIron.Math.Grid(width, height);
+            
+            //
+            // actually assigns values from generated level
+            let createCallback = (x,y,v) =>{
+                if (v === 1) {
+                    stage.setValue(x, y, new coldIron.Tile.FloorTile(options));
+                    regionMap.setValue(x, y, 1);
+                } else {
+                    stage.setValue(x, y, new coldIron.Tile.WallTile(options));
+                    regionMap.setValue(x, y, 0);
+                }
+            };
+            
+            // to-do: select different generators
+            let generator = new ROT.Map.Cellular(width, height);
+                    generator.randomize(0.5);
+                    
+            
+            // -2 because one last iteration happens after
+            for (let i = 0; i < totalIterations - 2; i++) {
+                generator.create();
             }
+            // stage values assigned from generator
+            generator.create(createCallback);
+        
+            return [stage, regionMap];
         };
-        generateStages(width, height, depth);
+
+        for (let i = 0; i < depth; i++) {
+            [stages[i], regionMaps[i]] = generateStage(width, height);
+        }
         return stages;
     }
 };

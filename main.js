@@ -11,4 +11,5 @@ window.addEventListener("load", function() {
         let game = new coldIron(gameData, silverKey);
         game.init(gameDiv, "start");
     }
+
 });

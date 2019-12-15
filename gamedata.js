@@ -57,7 +57,8 @@ gameData.tileData = {
 gameData.screenData.start.commands = {
     keys:   {
         any: ()=>console.log('any?'),
-        enter: 'switch:menu',
+        //enter: 'switch:menu',
+        enter: 'switch:play',
     },
     shortcuts: {
         'ctrl,z':   ()=>console.log('undo?'),
@@ -317,8 +318,8 @@ gameData.attributeData.playerActor = {
     portrait: [
     '...%c{white}____%c{}...',
     '..%c{white}/ ___\\%c{}..',
-    '.%c{white}()/    \\%c{}.',
-    '..%c{white}\\\\____/%c{}.',
+    '.%c{white}()/ O,O\\%c{}.',
+    '..%c{white}\\\\__c_/%c{}.',
     '.%c{white}/      \\%c{}.',
     '.%c{white}|%c{}_%c{white}|%c{}___%c{}%c{white}||%c{}.',
     ],
@@ -377,8 +378,8 @@ gameData.attributeData.mobile = {
                     this.attack(target);
                 //    return true;
                 }
-            // check if tile is traversable before walking
-            } else if (tile.traversable){
+            // check if tile is passable before walking
+            } else if (tile.passable){
                 this._x = x;
                 this._y = y;
             //    return true;
@@ -462,7 +463,10 @@ gameData.attributeData.messageRecipient = {
         this._messages = [];
     },
     receiveMessage: function(message) {
-        this._messages.push(message);
+        // to-do: have monsters act on 'hearing' something
+        if (this.hasAttribute('playerActor')) {
+            this._messages.push(message);
+        }
     },
     getMessages:    function(message) {
         return this._messages;

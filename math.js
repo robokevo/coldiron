@@ -42,3 +42,15 @@ coldIron.Math.getDistance = function(startX, startY, endX, endY) {
         return Math.sqrt(Math.pow((startX-endX), 2) + Math.pow((startY-endY), 2));
     }
 };
+
+// Implementation of the Fisher-Yates shuffling algorithm:
+// https://javascript.info/task/shuffle
+// Reverse-crawls through array and swap with random previous item,
+// then shuffles in-place
+coldIron.Math.shuffle = function(array) {
+        let j;
+    for (let i = array.length-1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+};
