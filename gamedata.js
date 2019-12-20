@@ -11,7 +11,7 @@ let gameData = {
     stageWidth: 70,
     stageHeight: 40,
     colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
-    worldDepth: 3,
+    worldDepth: 2,
     stageOptions: {},
     screenData: {
         start:  {
@@ -281,8 +281,8 @@ gameData.screenData.play.panelData = {
                 }
             }
             this.display.drawText(this.origin.x+12,this.origin.y+2,
-                '%b{' + this.bgColor + '}You (%c{' + this.target.fgColor +
-                `}${this.target.character}%c{` + this.fgColor + '}%c{})');
+                `%b{${this.bgColor}}You (%c{${this.target.fgColor}}` +
+                `${this.target.character}%c{${this.fgColor}}%c{})`);
             this.display.drawText(this.origin.x+12,this.origin.y+3,
                 `%b{${this.bgColor}}Lvl. #`);
         },

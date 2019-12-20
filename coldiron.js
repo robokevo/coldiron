@@ -723,7 +723,7 @@ coldIron.World = class  {
         // this._title = gameData.title || undefined;
         this._width = appData.stageWidth || this._displayWidth;
         this._height = appData.stageHeight || this._displayHeight;
-        this._depth = appData.worldDepth || 0;
+        this._depth = appData.worldDepth || 2;
         this._currentDepth = appData.currentDepth || 0;
         this._stages = appData.stages || undefined;
         this._player = appData.player || player || undefined;
@@ -814,7 +814,7 @@ coldIron.World = class  {
     // targets - type of target:
     //    'floor': neighboring floor tiles
     //    'entity': neighboring entities
-    //    'random': randomized tiles in range
+    //    'any': any tiles in range
     // range - range around entity to explore from
     findInRange(center, range, targets, sourceGrid) {
         let totalRange = [];
@@ -847,8 +847,7 @@ coldIron.World = class  {
                     validTargets.push(entity);
                 }
             }
-            if (targets === 'random') {
-                coldIron.Math.shuffle(totalRange);
+            if (targets === 'any') {
                 validTargets = totalRange;
             }
         }
@@ -967,52 +966,17 @@ coldIron.World = class  {
     // Constructor for stages
     // Instance method on coldIron object
     buildStages(appData) {
-        let RegionHandler = class{
-            constructor() {
-                // depth level used as key for regions
-                this.regions = {};
-                this._currentDepth = 0;
-                this.regionMaps = [];
-            }
-
-            get depth() {
-                return this._currentDepth;
-            }
-
-            set depth(depthLevel) {
-                this._currentDepth = depthLevel;
-            }
-
-            getRegion(regionNumber) {
-                let regions = this.regions[this.depth];
-                return regions.filter(r=>r.number === regionNumber)[0];
-            }
-
-            wallRegion(stage, regionNumber){
-                let region = this.getRegion(regionNumber);
-                let point = {};
-                point.x = undefined;
-                point.y = undefined;
-                let pointStr;
-                for (let i = 0; i < region.data.length; i++) {
-                    pointStr = region.data[i]; 
-                    [point.x, point.y] =
-                        [parseInt(pointStr[0]), parseInt(pointStr[2])];
-                    stage.setValue(point.x, point.y, new coldIron.Tile.WallTile(options));
-                }
-            }
-        };
-
         let Region = class {
-            constructor() {
+            constructor(number) {
                 this.data = [];
-                this.number = undefined;
+                this.number = number;
                 this.size = 0;
             }
-
             addValue(x, y) {
-                this.data.push(x+','+y);
-                this.size++;
+                if (!this.contains(x, y)) {
+                    this.data.push(x+','+y);
+                    this.size++;
+                }
             }
 
             contains(x, y) {
@@ -1022,22 +986,121 @@ coldIron.World = class  {
                     return true;
                 }
             }
+
         };
+
+        let RegionHandler = class {
+            constructor(world) {
+                this.world = world;
+                this.regions = [];
+                this._depth = 0;
+                this._regionIndex = 0;
+            }
+
+            get depth() {
+                return this._depth;
+            }
+
+            set depth(d) {
+                this._depth = d;
+                this._regionIndex = 0;
+            }
+
+            addRegion(region) {
+                if (!this.regions[this.depth]) {
+                    this.regions[this.depth] = [];
+                }
+            
+                this.regions[this.depth].push(region);
+            }
+
+            addPoint(x, y, regionNo) {
+                let region = this.regionFromNumber(regionNo);
+                if (!region) {
+                    region = new Region(regionNo);
+                    this.addRegion(region);
+                }
+                region.addValue(x, y);
+
+            }
+
+            getRegions() {
+                return this.regions[this.depth];
+            }
+
+            regionFromNumber(rNumber) {
+                let regions = this.getRegions();
+                let found = false;
+                let region;
+                if (regions) {
+                    for (let i = 0; i < regions.length; i++) {
+                        region = regions[i];
+                        if (region.number === rNumber) {
+                            found = region;
+                        }
+                    }
+                }
+                return found;
+            }
+
+            regionFromPt(x, y) {
+                let regions = this.getRegions();
+                let found = false;
+                let region;
+                if (regions) {
+                    for (let i = 0; i < regions.length; i++) {
+                        region = regions[i];
+                        if (region.contains(x, y)) {
+                            found = region;
+                        }
+                    }
+                }
+                return found;
+            }
+
+            fillRegion(x, y, regionMap) {
+                let rMap = regionMap;
+                let value = rMap.getValue(x, y);
+                let point = {
+                    x: x,
+                    y: y
+                };
+                let neighbors =
+                rHandler.world.findInRange(point, 1, 'any', rMap);
+                if ((value !== 0) && !this.regionFromPt(point.x, point.y)) {
+                    rHandler.addPoint(point.x, point.y, this._regionIndex);
+                    while(neighbors.length > 0) {
+                        let point = neighbors.pop();
+                        let newNeighbors =
+                            rHandler.world.findInRange(point, 1, 'any', rMap);
+                        value = rMap.getValue(point.x, point.y);
+                        if ((value !== 0) && !this.regionFromPt(point.x, point.y)) {
+                            rHandler.addPoint(point.x, point.y, this._regionIndex);
+                        }
+                        for (let i = 0; i < newNeighbors.length; i++) {
+                            point = newNeighbors[i];
+                            if ((value !== 0) && !this.regionFromPt(point.x, point.y)) {
+                                neighbors.push(point);
+                            }
+                        }
+                    }
+                    this._regionIndex++;
+                }                
+            }
+        };        
 
         let width = this._width;
         let height = this._height;
-        let depth = appData.worldDepth | 1;
+        let depth = appData.worldDepth || 1;
         let options = appData.stageOptions || {};
         let stages = [];
-        let regionMaps = [];
-        //let regionHandler = new RegionHandler();
+        let regions = [];
+        let rMap;
+        //let regionHandler = new RegionHandler(this);
 
 
         //
         // stage generator; employs ROT random level generation
-        
-
-
         let generateStage = () => {
             let totalIterations = 4;
             let stage = new coldIron.Math.Grid(width, height);
@@ -1060,8 +1123,8 @@ coldIron.World = class  {
                     generator.randomize(0.5);
                     
             
-            // -2 because one last iteration happens after
-            for (let i = 0; i < totalIterations - 2; i++) {
+            // -1 because one last iteration happens after
+            for (let i = 0; i < totalIterations - 1; i++) {
                 generator.create();
             }
             // stage values assigned from generator
@@ -1070,8 +1133,22 @@ coldIron.World = class  {
             return [stage, regionMap];
         };
 
+        let rHandler = new RegionHandler(this);
+
         for (let i = 0; i < depth; i++) {
-            [stages[i], regionMaps[i]] = generateStage(width, height);
+            rHandler.depth = i;
+            [stages[i], rMap] = generateStage(width, height);
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    rHandler.fillRegion(x, y, rMap);
+                    //let testPt = rMap.getValue(x, y);
+                    //if (testPt !== 0) {
+                    //    rHandler.addRegion(new Region(x));
+                    //}
+                    ////console.log(rHandler);
+                }
+            }
+        console.log(rHandler);
         }
         return stages;
     }
