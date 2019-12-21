@@ -1065,9 +1065,10 @@ coldIron.World = class  {
                     x: x,
                     y: y
                 };
-                let neighbors =
-                rHandler.world.findInRange(point, 1, 'any', rMap);
+
                 if ((value !== 0) && !this.regionFromPt(point.x, point.y)) {
+                    let neighbors =
+                        rHandler.world.findInRange(point, 1, 'any', rMap);
                     rHandler.addPoint(point.x, point.y, this._regionIndex);
                     while(neighbors.length > 0) {
                         let point = neighbors.pop();
@@ -1141,11 +1142,7 @@ coldIron.World = class  {
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < height; y++) {
                     rHandler.fillRegion(x, y, rMap);
-                    //let testPt = rMap.getValue(x, y);
-                    //if (testPt !== 0) {
-                    //    rHandler.addRegion(new Region(x));
-                    //}
-                    ////console.log(rHandler);
+
                 }
             }
         console.log(rHandler);

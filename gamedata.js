@@ -11,11 +11,12 @@ let gameData = {
     stageWidth: 70,
     stageHeight: 40,
     colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
-    worldDepth: 2,
+    worldDepth: 3,
     stageOptions: {},
     screenData: {
         start:  {
             title:   'Start',
+            colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
         },
         menu:   {
             title:   'Menu',
@@ -70,7 +71,32 @@ gameData.screenData.start.commands = {
 
 // "Start" screen renderer
 gameData.screenData.start.render = (main, display) => {
-    display.drawText(9,9, "start!");
+    let width = main.screen.width;
+    let height = main.screen.height;
+
+    let logo = 
+    "%c{rgb(10, 30, 50)}.%c{}__ __  ___  ___  _ _    .--,\n" +  
+    "/  V  \\/   \\/   \\| \\ |  / /    TM\n" +    
+    "| |v| |  O    O  |   |  \\ \\_ ,\n" +                
+    "|_| |_|\\___/\\___/|_\\_|   `--'\n" +           
+    "%c{rgb(10, 30, 50)}...%c{}__ __  _  _ _  ___  ___   ___\n" +           
+    "%c{rgb(10, 30, 50)}..%c{}/  V  \\[_]| \\ |/ o \\| D ) / __)\n" +              
+    "%c{rgb(10, 30, 50)}..%c{}| |v| || ||   |  __/|   \\ \\__ \\\n" +       
+    "%c{rgb(10, 30, 50)}..%c{}|_| |_||_||_\\_|\\___]|_|\\_\\(___/\n";
+    let xOffsetLogo = Math.round(width/2 - 17);
+    let yOffsetLogo = Math.round(height/5);    
+
+    let command = "Press [Enter] to start!";
+    let xOffsetCommand = Math.round(width/2 - command.length/2);
+    let yOffsetCommand = Math.round(height-height/4);
+
+    let author = "(c) robokevo 2019";
+    let xOffsetAuthor = Math.round(width - author.length - 1);
+    let yOffsetAuthor = Math.round(height- 2);
+
+    display.drawText(xOffsetLogo,yOffsetLogo, logo);
+    display.drawText(xOffsetCommand,yOffsetCommand, command);
+    display.drawText(xOffsetAuthor,yOffsetAuthor, author);
 };
 
 ////////////////////////////////////////////////////////////////////
