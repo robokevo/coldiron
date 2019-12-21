@@ -11,7 +11,7 @@ let gameData = {
     stageWidth: 70,
     stageHeight: 40,
     colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
-    worldDepth: 3,
+    worldDepth: 2,
     stageOptions: {},
     screenData: {
         start:  {
@@ -79,10 +79,10 @@ gameData.screenData.start.render = (main, display) => {
     "/  V  \\/   \\/   \\| \\ |  / /    TM\n" +    
     "| |v| |  O    O  |   |  \\ \\_ ,\n" +                
     "|_| |_|\\___/\\___/|_\\_|   `--'\n" +           
-    "%c{rgb(10, 30, 50)}...%c{}__ __  _  _ _  ___  ___   ___\n" +           
-    "%c{rgb(10, 30, 50)}..%c{}/  V  \\[_]| \\ |/ o \\| D ) / __)\n" +              
-    "%c{rgb(10, 30, 50)}..%c{}| |v| || ||   |  __/|   \\ \\__ \\\n" +       
-    "%c{rgb(10, 30, 50)}..%c{}|_| |_||_||_\\_|\\___]|_|\\_\\(___/\n";
+    "%c{rgb(10, 30, 50)}..%c{}__ __  _  _ _  ___  ___   ___\n" +           
+    "%c{rgb(10, 30, 50)}.%c{}/  V  \\[_]| \\ |/ o \\| D ) / __)\n" +              
+    "%c{rgb(10, 30, 50)}.%c{}| |v| || ||   |  __/|   \\ \\__ \\\n" +       
+    "%c{rgb(10, 30, 50)}.%c{}|_| |_||_||_\\_|\\___]|_|\\_\\(___/\n";
     let xOffsetLogo = Math.round(width/2 - 17);
     let yOffsetLogo = Math.round(height/5);    
 
@@ -269,8 +269,10 @@ gameData.screenData.play.panelData = {
         render: function(main, display) {
             this.drawPanel({title: true});
             let messages = this.messages;
-            if (messages.length >= this.height) {
-                messages = messages.slice(messages.length - this.height+2); // +1 for border
+            // truncates older messages to fit log in window
+            // to-do: have scrollable buffer
+            while (messages.length >= this.height-1) {
+                messages.shift();
             }
             let message, fgColor, bgColor;
             for (let i = 0; i < messages.length; i++) {
