@@ -90,7 +90,7 @@ gameData.screenData.start.render = (main, display) => {
     let xOffsetCommand = Math.round(width/2 - command.length/2);
     let yOffsetCommand = Math.round(height-height/4);
 
-    let author = "(c) robokevo 2019";
+    let author = "(c)robokevo 2019";
     let xOffsetAuthor = Math.round(width - author.length - 1);
     let yOffsetAuthor = Math.round(height- 2);
 

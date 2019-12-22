@@ -968,19 +968,32 @@ coldIron.World = class  {
     buildStages(appData) {
         let Region = class {
             constructor(number) {
-                this.data = [];
+                this._data = [];
                 this.number = number;
                 this.size = 0;
             }
             addValue(x, y) {
                 if (!this.contains(x, y)) {
-                    this.data.push(x+','+y);
+                    this._data.push(x+','+y);
                     this.size++;
                 }
             }
 
+            getValues() {
+                let points = [];
+                let data = this._data;
+                let datum;
+                for (let i = 0; i < data.length; i++) {
+                    let point = {};
+                    datum = data[i].split(',');
+                    [point.x, point.y] = [parseInt(datum[0]), parseInt(datum[1])];
+                    points.push(point);
+                }
+                return points;
+            }
+
             contains(x, y) {
-                if (this.data.indexOf(x+','+y) === -1) {
+                if (this._data.indexOf(x+','+y) === -1) {
                     return false;
                 } else {
                     return true;
@@ -1058,8 +1071,10 @@ coldIron.World = class  {
                 return found;
             }
 
-            fillRegion(x, y, regionMap) {
+            fillRegion(x, y, regionMap, targetStage, stageOptions) {
                 let rMap = regionMap;
+                let stage = targetStage;
+                let options = stageOptions;
                 let value = rMap.getValue(x, y);
                 let point = {
                     x: x,
@@ -1085,8 +1100,28 @@ coldIron.World = class  {
                             }
                         }
                     }
+                    let region = this.regionFromPt(x, y);
+                    // if below size cutoff, walls off
+                    // to-do: vary size cutoff
+                    if (region.size < 30) {
+                        let points = region.getValues();
+                        this.wallRegion(points, stage, options);
+                        this._regionIndex--;
+                    }
                     this._regionIndex++;
                 }                
+            }
+
+            wallRegion(targetPts, targetStage, targetOptions) {
+                let points = targetPts;
+                let stage = targetStage;
+                let options = targetOptions;
+                let pt;
+                for (let i = 0; i < points.length; i++) {
+                    pt = points[i];
+                    let wall = new coldIron.Tile.WallTile(options);
+                    stage.setValue(pt.x, pt.y, wall);
+                }
             }
         };        
 
@@ -1141,12 +1176,11 @@ coldIron.World = class  {
             [stages[i], rMap] = generateStage(width, height);
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < height; y++) {
-                    rHandler.fillRegion(x, y, rMap);
-
+                    rHandler.fillRegion(x, y, rMap, stages[i], options);
                 }
             }
-        console.log(rHandler);
         }
+        console.log(rHandler);
         return stages;
     }
 };
