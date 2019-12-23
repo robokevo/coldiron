@@ -1041,7 +1041,13 @@ coldIron.World = class  {
                 return this.regions[this.depth];
             }
 
-            regionFromNumber(rNumber) {
+            removeRegion(number) {
+                let regions = this.getRegions();
+
+            }
+
+            regionFromNumber(rNumber, removeFlag) {
+                let remove = removeFlag || false;
                 let regions = this.getRegions();
                 let found = false;
                 let region;
@@ -1049,7 +1055,12 @@ coldIron.World = class  {
                     for (let i = 0; i < regions.length; i++) {
                         region = regions[i];
                         if (region.number === rNumber) {
-                            found = region;
+                            if (removeFlag) {
+                                regions.splice(regions.indexOf(region), 1);
+                                found = false;
+                            } else {
+                                found = region;
+                            }
                         }
                     }
                 }
@@ -1102,18 +1113,17 @@ coldIron.World = class  {
                     }
                     let region = this.regionFromPt(x, y);
                     // if below size cutoff, walls off
-                    // to-do: vary size cutoff
-                    if (region.size < 30) {
-                        let points = region.getValues();
-                        this.wallRegion(points, stage, options);
-                        this._regionIndex--;
+                    // to-do: vary size cutoff w/ variable
+                    if (region.size < 20) {
+                        this.wallRegion(region, stage, options);
+                    } else {
+                        this._regionIndex++;
                     }
-                    this._regionIndex++;
                 }                
             }
 
-            wallRegion(targetPts, targetStage, targetOptions) {
-                let points = targetPts;
+            wallRegion(region, targetStage, targetOptions) {
+                let points = region.getValues();
                 let stage = targetStage;
                 let options = targetOptions;
                 let pt;
@@ -1122,6 +1132,7 @@ coldIron.World = class  {
                     let wall = new coldIron.Tile.WallTile(options);
                     stage.setValue(pt.x, pt.y, wall);
                 }
+                this.regionFromNumber(region.number, true);
             }
         };        
 
