@@ -971,12 +971,77 @@ coldIron.World = class  {
                 this._data = [];
                 this.number = number;
                 this.size = 0;
+                this._northY = undefined;
+                this._southY = undefined;
+                this._westX = undefined;
+                this._eastX = undefined;
             }
             addValue(x, y) {
                 if (!this.contains(x, y)) {
                     this._data.push(x+','+y);
                     this.size++;
                 }
+                //
+                // setters take care of checking whether
+                // each is the new best value for each
+                this.westX = x;
+                this.eastX = x;
+                this.northY = y;
+                this.southY = y;
+            }
+
+            get westX() {
+                return this._westX;
+            }
+
+            set westX(x) {
+                if (this._westX === undefined ||
+                    x < this._westX) {
+                    this._westX = x;
+                }
+            }
+
+            get eastX() {
+                return this._eastX;
+            }
+
+            set eastX(x) {
+                if (this._eastX === undefined ||
+                    x > this._eastX) {
+                    this._eastX = x;
+                }
+            }
+            
+            get northY() {
+                return this._northY;
+            }
+
+            set northY(y) {
+                if (this._northY === undefined ||
+                    y < this._northY) {
+                    this._northY = y;
+                }
+            }
+            
+            get southY() {
+                return this._southY;
+            }
+
+            set southY(y) {
+                if (this._southY === undefined ||
+                    y > this._southY) {
+                    this._southY = y;
+                }
+            }
+
+            get center() {
+                let x = Math.round((this.westX + this.eastX)/2);
+                let y = Math.round((this.northY + this.southY)/2);
+                let center = {
+                    x: x,
+                    y: y
+                };
+                return center;
             }
 
             getValues() {
@@ -1039,6 +1104,10 @@ coldIron.World = class  {
 
             getRegions() {
                 return this.regions[this.depth];
+            }
+
+            clearLastRegion() {
+                this.regions.pop();
             }
 
             removeRegion(number) {
@@ -1114,7 +1183,7 @@ coldIron.World = class  {
                     let region = this.regionFromPt(x, y);
                     // if below size cutoff, walls off
                     // to-do: vary size cutoff w/ variable
-                    if (region.size < 20) {
+                    if (region.size < 50) {
                         this.wallRegion(region, stage, options);
                     } else {
                         this._regionIndex++;
@@ -1181,13 +1250,26 @@ coldIron.World = class  {
         };
 
         let rHandler = new RegionHandler(this);
-
+        let success;
         for (let i = 0; i < depth; i++) {
             rHandler.depth = i;
-            [stages[i], rMap] = generateStage(width, height);
-            for (let x = 0; x < width; x++) {
-                for (let y = 0; y < height; y++) {
-                    rHandler.fillRegion(x, y, rMap, stages[i], options);
+            success = false;
+            while (!success) {            
+                [stages[i], rMap] = generateStage(width, height);
+                for (let x = 0; x < width; x++) {
+                    for (let y = 0; y < height; y++) {
+                        rHandler.fillRegion(x, y, rMap, stages[i], options);
+                    }
+                }
+                //
+                // filters stagess for having a good number of regions
+                // otherwise it re-rolls the stage
+                if (rHandler.getRegions().length < 3 ||
+                    rHandler.getRegions().length > 5) {
+                    rHandler.clearLastRegion();
+                    success = false;
+                } else {
+                    success = true;
                 }
             }
         }
