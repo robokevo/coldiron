@@ -618,7 +618,7 @@ coldIron.Tile.StairsUp = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
         this._passable = properties.passable || true;
-        this._destructible = properties.destructible || true;
+        this._destructible = properties.destructible || false;
         this._character = properties.character || '<';
         this._fgColor = properties.fgColor || 'yellow';
         this._bgColor = properties.bgColor || 'black';
@@ -629,7 +629,7 @@ coldIron.Tile.StairsDown = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
         this._passable = properties.passable || true;
-        this._destructible = properties.destructible || true;
+        this._destructible = properties.destructible || false;
         this._character = properties.character || '>';
         this._fgColor = properties.fgColor || 'orange';
         this._bgColor = properties.bgColor || 'black';
@@ -1135,8 +1135,14 @@ coldIron.World = class  {
 
             }
 
-            getRegions() {
-                return this.regions[this.depth];
+            getRegions(z) {
+                let depth;
+                if (z === 0) {
+                    depth = 0;
+                } else {
+                    depth = z || this.depth;
+                }
+                return this.regions[depth];
             }
 
             clearLastRegion() {
@@ -1148,9 +1154,9 @@ coldIron.World = class  {
 
             }
 
-            regionFromNumber(rNumber, removeFlag) {
+            regionFromNumber(rNumber, z, removeFlag) {
                 let remove = removeFlag || false;
-                let regions = this.getRegions();
+                let regions = this.getRegions(z);
                 let found = false;
                 let region;
                 if (regions) {
@@ -1169,8 +1175,8 @@ coldIron.World = class  {
                 return found;
             }
 
-            regionFromPt(x, y) {
-                let regions = this.getRegions();
+            regionFromPt(x, y, z) {
+                let regions = this.getRegions(z);
                 let found = false;
                 let region;
                 if (regions) {
@@ -1234,7 +1240,7 @@ coldIron.World = class  {
                     let wall = new coldIron.Tile.WallTile(options);
                     stage.setValue(pt.x, pt.y, wall);
                 }
-                this.regionFromNumber(region.number, true);
+                this.regionFromNumber(region.number, this.depth, true);
             }
         };        
 
@@ -1297,14 +1303,48 @@ coldIron.World = class  {
                 //
                 // filters stagess for having a good number of regions
                 // otherwise it re-rolls the stage
-                if (rHandler.getRegions().length < 3 ||
-                    rHandler.getRegions().length > 5) {
+                let regions = rHandler.getRegions();
+                if (regions.length < 3 ||
+                    regions.length > 5) {
                     rHandler.clearLastRegion();
                     success = false;
                 } else {
                     if (i > 0) {
-                        console.log(i);
-                        success = true;
+                        let lastRegions = rHandler.getRegions(i-1);
+                        let connected = false;
+                        let stage = stages[i];
+                        let lastStage = stages[i-1];
+                        for (let j = 0; j < regions.length; j++) {
+                            connected = false;
+                            let region = regions[j];
+                            let points =  region.getValues();
+                            let connectedRegions = [];
+                            coldIron.Math.shuffle(points);
+                            for (let k = 0; k < points.length; k++) {
+                                if (connectedRegions.indexOf(region.number) === -1) {
+                                    let point = points[k];
+                                    let target = rHandler.regionFromPt(point.x, point.y, i-1);
+                                    if (target) {
+                                        let upStairs = new coldIron.Tile.StairsUp(options);
+                                        let downStairs = new coldIron.Tile.StairsDown(options);
+                                        lastStage.setValue(point.x, point.y, upStairs);
+                                        stage.setValue(point.x, point.y, downStairs);
+                                        console.log(point);
+                                        console.log(lastStage);
+                                        connectedRegions.push(region.number);
+                                        connected = true;
+                                    }
+                                }
+                            }
+                            console.log(connectedRegions);
+                        }
+                        if (connected) {
+                            console.log('connected!');
+                            success = true;
+                        } else {
+                            console.log('fail');
+                            success = false;
+                        }
                     } else {
                         success = true;
                     }
