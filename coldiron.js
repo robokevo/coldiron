@@ -672,6 +672,14 @@ coldIron.Entity = class extends coldIron.Glyph {
         }
     }
 
+    act() {
+        if (this.z === this.world.depth) {
+            if (this._act) {
+                this._act();
+            }
+        }
+    }
+
     hasAttribute(attribute){
         if (typeof attribute === 'object') {
             return this._ownAttributes[attribute.name];
@@ -702,6 +710,14 @@ coldIron.Entity = class extends coldIron.Glyph {
 
     set y(yPos) {
         this._y = yPos;
+    }
+
+    get z() {
+        return this._z;
+    }
+
+    set z(depth) {
+        this._z = depth;
     }
 
     get world() {
@@ -787,8 +803,17 @@ coldIron.World = class  {
         return this._scheduler;
     }
 
-    get entities() {
-        return this._entities;
+    getEntities(d) {
+        let depth = d || this.depth;
+        let entities = [];
+        for (let i = 0; i < this._entities.length; i++) {
+            let entity = this._entities[i];
+            if (entity.z === this.depth) {
+                entities.push(entity);
+            }
+        }
+
+        return entities;
     }
 
     get main() {
@@ -878,11 +903,15 @@ coldIron.World = class  {
         }
     }
 
-    addEntity(entity) {
+    addEntity(entity, z) {
         // check entity bounds
         if (entity.x < 0 || entity.x >= this._width ||
             entity.y < 0 || entity.y >= this._height) {
             throw new Error('Adding entity out of bounds');
+        }
+        let depth = z || this.depth;
+        if (entity._z === undefined) {
+            entity.z = z;
         }
         // Update entity's map
         entity.world = this;
@@ -895,18 +924,22 @@ coldIron.World = class  {
         }
     }
 
-    addEntityAtRandom(entity) {
+    addEntityAtRandom(entity, z) {
         let position = this.getRandomFloorXY();
+        let depth = z || this.depth;
         entity.x = position.x;
         entity.y = position.y;
-        this.addEntity(entity);
+        entity.z = depth;
+        this.addEntity(entity, depth);
     }
 
-    getEntityAt(x, y) {
-        let entNo = this._entities.length;
+    getEntityAt(x, y, z) {
+        let depth = z || this.depth;
+        let entities = this.getEntities(z);
+        let entNo = entities.length;
         let entity;
         for (let i = 0; i < entNo; i++) {
-            entity = this._entities[i];
+            entity = entities[i];
             if (entity.x === x && entity.y === y) {
                 return entity;
             }
@@ -917,7 +950,7 @@ coldIron.World = class  {
     removeEntity(entity) {
         // find entity in list of present
         for (let i = 0; i< this._entities.length; i++) {
-            if (this.entities[i] === entity) {
+            if (this._entities[i] === entity) {
                 this._entities.splice(i, 1);
                 break;
             }
@@ -1269,7 +1302,12 @@ coldIron.World = class  {
                     rHandler.clearLastRegion();
                     success = false;
                 } else {
-                    success = true;
+                    if (i > 0) {
+                        console.log(i);
+                        success = true;
+                    } else {
+                        success = true;
+                    }
                 }
             }
         }

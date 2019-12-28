@@ -11,7 +11,7 @@ let gameData = {
     stageWidth: 70,
     stageHeight: 40,
     colors: ['rgb(0, 255, 0)', 'rgb(10, 30, 50)', ],
-    worldDepth: 2,
+    worldDepth: 3,
     stageOptions: {},
     screenData: {
         start:  {
@@ -222,7 +222,7 @@ gameData.screenData.play.panelData = {
             this.stageCenter = main.world.player;
             this.offset.x = this.stageCenter.x - this.center.x;
             this.offset.y = this.stageCenter.y - this.center.y + 1;
-            let entities = main.world.entities;
+            let entities = main.world.getEntities();
             let tile, entity;
             // adding to origins/subtracting from width-height for border space
             for (let x = this.origin.x+1; x < this.origin.x+this.width-1; x++) {
@@ -351,7 +351,7 @@ gameData.attributeData.playerActor = {
     '.%c{white}/      \\%c{}.',
     '.%c{white}|%c{}_%c{white}|%c{}___%c{}%c{white}||%c{}.',
     ],
-    act: function() {
+    _act: function() {
         // re-render screen
         // to-do: only re-render scene panel
         // Lock engine and wait asynchronously
@@ -370,11 +370,11 @@ gameData.attributeData.fungusActor = {
     init: function() {
         this._spawnRemaining = 3;
     },
-    act: function() {
+    _act: function() {
         // check if growing this turn
         // to-do: split into spawning function
         if (this._spawnRemaining > 0) {
-            if (Math.random() <= 0.005) {
+            if (Math.random() <= 0.015) {
                 // Find coordinates of random neighbor square
                 let targets = this.world.findInRange(this, 1, 'floor');
                 if (targets.length > 0) {
@@ -383,12 +383,13 @@ gameData.attributeData.fungusActor = {
                     let entity = new coldIron.Entity(gameData.entityData.fungus);
                     entity.x = target.x;
                     entity.y = target.y;
+                    entity.z = this.z;
                     this.world.sendMessageInRange(this, 5, 'The fungus spreads!');
                     this.world.addEntity(entity);
                     this._spawnRemaining--;
                 }
             }
-        } 
+        }
     }
 };
 
