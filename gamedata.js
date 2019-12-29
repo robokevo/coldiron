@@ -156,6 +156,10 @@ gameData.screenData.play.commands = {
         down: (main) => main.screen.move(0,1),
         left: (main) => main.screen.move(-1,0),
         right: (main) => main.screen.move(1,0),
+        enter: function(main) {
+            let player = main.world.player;
+            player.use();
+        },
     },
     shortcuts: {
         'ctrl,z':   ()=>console.log('undo!'),
@@ -361,6 +365,14 @@ gameData.attributeData.playerActor = {
         // to-do: determine if more rendering needs to happen
         this.world.main.screen._render(this.world.main.display);
         this.world.engine.lock();        
+    },
+    use: function() {
+        let tile = this.world.getTile(this.x, this.y);
+        if (tile.use === 'navUp') {
+            this.world.main.screen.move(0, 0, 1);
+        } else if (tile.use === 'navDown') {
+            this.world.main.screen.move(0, 0, -1);
+        }
     }
 };
 
@@ -396,29 +408,38 @@ gameData.attributeData.fungusActor = {
 gameData.attributeData.mobile = {
     // to-do: more interactions on bump
     name:   'mobile',
-    tryMove: function(x, y, stage) {
-        let tile;
-        let target;
-        if (stage.contains(x, y)) {
-            tile = stage.getValue(x, y);
-            target = this.world.getEntityAt(x, y);
-            if (target) {
-                if (this.hasAttribute('attacker')) {
-                    this.attack(target);
+    tryMove: function(x, y, z) {
+        if (z === undefined) {
+            z = this.world.player.z;
+        } else if (z > this.z) {
+            console.log('ascending');
+            this.z = z;
+            this.world.depth = z;
+        } else {
+            let target;
+            let stage = this.world.stage;
+            let tile = stage.getValue(x, y);
+            if (stage.contains(x, y)) {
+                target = this.world.getEntityAt(x, y);
+                if (target &&
+                    target !== this) {
+                    if (this.hasAttribute('attacker')) {
+                        this.attack(target);
+                    //    return true;
+                    }
+                // check if tile is passable before walking
+                }  else if (tile.passable && z === this.world.depth){
+                    this.x = x;
+                    this.y = y;
                 //    return true;
-                }
-            // check if tile is passable before walking
-            } else if (tile.passable){
-                this._x = x;
-                this._y = y;
-            //    return true;
-            // or see if tile is destructible
-            // to-do: make incumbent on skill or tool
-            } else if (tile.destructible) {
-                this.world.destroy(x, y);
-            //    return true;
+                // or see if tile is destructible
+                // to-do: make incumbent on skill or tool
+                } else if (tile.destructible) {
+                    this.world.destroy(x, y);
+                } 
+
             }
-        } 
+        }
         //return false;
         this.continue();
     }

@@ -485,12 +485,14 @@ coldIron.Screen = class {
     }
 
     // Screen-moving functions
-    move(dX, dY) {
+    move(dX, dY, z) {
         // Positive dX moves right, negative dY moves down
+        let dZ = z || 0;
+        let newZ = this.player.z + dZ;
         let newX = this.player.x + dX;
         let newY = this.player.y + dY;
         // attempt move
-        let result = this.player.tryMove(newX, newY, this.stage);
+        let result = this.player.tryMove(newX, newY, newZ);
         //if (result) {
         //    this._render(this.main.display);
         //}
@@ -585,7 +587,6 @@ coldIron.Tile.NullTile = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
         this._passable = properties.passable || false;
-        this._destructible = properties.destructible || false;
         this._character = '!';
         this._fgColor = 'pink';
         this._bgColor = 'red';
@@ -596,7 +597,6 @@ coldIron.Tile.FloorTile = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
         this._passable = properties.passable || true;
-        this._destructible = properties.destructible || false;
         this._character = properties.character || '.';
         this._fgColor = properties.fgColor || 'goldenrod';
         this._bgColor = properties.bgColor || 'black';
@@ -614,22 +614,28 @@ coldIron.Tile.WallTile = class extends coldIron.Tile {
     }
 };
 
+//
+// to-do: put usable/use into usability attribute
 coldIron.Tile.StairsUp = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
         this._passable = properties.passable || true;
-        this._destructible = properties.destructible || false;
+        this._usable = properties.usable || true;
+        this.use = 'navUp';
         this._character = properties.character || '<';
         this._fgColor = properties.fgColor || 'yellow';
         this._bgColor = properties.bgColor || 'black';
     }
 };
 
+//
+// to-do: put usable/use into usability attribute
 coldIron.Tile.StairsDown = class extends coldIron.Tile {
     constructor(properties) {
         super(properties);
         this._passable = properties.passable || true;
-        this._destructible = properties.destructible || false;
+        this._usable = properties.usable || true;
+        this.use = 'navDown';
         this._character = properties.character || '>';
         this._fgColor = properties.fgColor || 'orange';
         this._bgColor = properties.bgColor || 'black';
@@ -731,6 +737,7 @@ coldIron.Entity = class extends coldIron.Glyph {
     // unlocks game engine if entity locked it
     continue() {
         this.world.engine.unlock();
+        console.log(this.world.engine);
     }
 };
 
@@ -765,9 +772,12 @@ coldIron.World = class  {
 
         let newEnt;
 
-        for (let i = 0; i < 25; i++) {
-            newEnt = new coldIron.Entity(appData.entityData.fungus);
-            this.addEntityAtRandom(newEnt);
+        for (let d = 0; d < this._depth; d++) {
+            for (let i = 0; i < 25; i++) {
+                newEnt = new coldIron.Entity(appData.entityData.fungus);
+                newEnt.z = d;
+                this.addEntityAtRandom(newEnt);
+            }
         }
     }
 
