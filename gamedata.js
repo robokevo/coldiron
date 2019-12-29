@@ -412,9 +412,15 @@ gameData.attributeData.mobile = {
         if (z === undefined) {
             z = this.world.player.z;
         } else if (z > this.z) {
-            console.log('ascending');
+            this.world.sendMessage(this, `You ascend to Floor ${z + 1}`);
             this.z = z;
             this.world.depth = z;
+            this.world.main.refresh();
+        } else if (z < this.z) {
+            this.world.sendMessage(this, `You descend to Floor ${z + 1}`);
+            this.z = z;
+            this.world.depth = z;
+            this.world.main.refresh();
         } else {
             let target;
             let stage = this.world.stage;

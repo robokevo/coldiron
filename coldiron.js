@@ -75,6 +75,7 @@ class coldIron {
     }
 
     refresh() {
+        this.screen._enter();
         this.screen._render(this.screen.display);
     }
 
@@ -94,7 +95,7 @@ class coldIron {
         this.screen = this._screenList[screen];
         if (this.screen !== null) {
             this.screen._enter();
-            this.refresh(this.display);
+            this.refresh();
             this.screen._handleInput('enter');
         }
     }
@@ -775,8 +776,7 @@ coldIron.World = class  {
         for (let d = 0; d < this._depth; d++) {
             for (let i = 0; i < 25; i++) {
                 newEnt = new coldIron.Entity(appData.entityData.fungus);
-                newEnt.z = d;
-                this.addEntityAtRandom(newEnt);
+                this.addEntityAtRandom(newEnt, d);
             }
         }
     }
@@ -921,7 +921,7 @@ coldIron.World = class  {
         }
         let depth = z || this.depth;
         if (entity._z === undefined) {
-            entity.z = z;
+            entity.z = depth;
         }
         // Update entity's map
         entity.world = this;
@@ -935,8 +935,8 @@ coldIron.World = class  {
     }
 
     addEntityAtRandom(entity, z) {
-        let position = this.getRandomFloorXY();
         let depth = z || this.depth;
+        let position = this.getRandomFloorXY(depth);
         entity.x = position.x;
         entity.y = position.y;
         entity.z = depth;
@@ -983,9 +983,12 @@ coldIron.World = class  {
         }
     }
 
-    isFloorTile(x, y) {
+    isFloorTile(x, y, z) {
+        let depth = z || this.depth;
+        let stage = this.stages[depth];
+        let tile = stage.getValue(x, y);
         let clear;
-        if (!(this.stage.getValue(x, y) instanceof coldIron.Tile.FloorTile) ||
+        if (!(tile instanceof coldIron.Tile.FloorTile) ||
         this.getEntityAt(x, y)) {
             clear = false;
         } else {
@@ -994,11 +997,12 @@ coldIron.World = class  {
         return clear;
     }
 
-    getRandomFloorXY() {
+    getRandomFloorXY(z) {
+        let depth = z || this.depth;
         let tile = {x: undefined, y: undefined};
-        let stage = this.stages[this.depth];
+        let stage = this.stages[depth];
         let valid = false;
-        while (!this.isFloorTile(tile.x, tile.y)) {
+        while (!this.isFloorTile(tile.x, tile.y, depth)) {
             tile.x = Math.floor(Math.random() * this._width);
             tile.y = Math.floor(Math.random() * this._height);
         }
